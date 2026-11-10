@@ -471,7 +471,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .durations-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; justify-content: flex-end; }
 .durations-bar-fill { width: 100%; background: linear-gradient(180deg, var(--accent), var(--primary)); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s; }
 .durations-bar-label { font-size: 0.6rem; color: var(--muted); }
-.measure-current-card { background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border: 1px solid var(--primary); border-radius: var(--r-md); padding: 20px; margin-bottom: 12px; text-align: center; }
+.measure-current-card { background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border: 1px solid var(--primary); border-radius: var(--r-md); padding: 20px; margin-top: 16px; margin-bottom: 12px; text-align: center; }
 .measure-current-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
 .measure-current-value { font-size: 2.5rem; font-weight: 800; color: var(--primary); line-height: 1; }
 .measure-current-unit { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
@@ -3283,7 +3283,7 @@ function renderMeasurements() {
                 return `<div class="measure-item"><div class="measure-item-info"><div class="measure-item-date">${formatShortDate(new Date(m.date))}</div>${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div><button class="icon-btn" onclick="deleteMeasurement(${m.id})" aria-label="Удалить">🗑</button></div>`;
             }).join('');
         }
-        c.innerHTML = `${measurementsSelectionMode ? '' : '<button class="btn accent" onclick="openMeasurementForm()">+ Добавить замер</button>'}${currentHtml}${chartHtml}${sorted.length > 0 ? `<h2 style="margin-top:16px;">История (${sorted.length})</h2>` : ''}${listHtml}`;
+        c.innerHTML = `${measurementsSelectionMode ? '' : '<button class="btn accent" onclick="openMeasurementForm()" style="margin-top: 0; margin-bottom: 16px;">+ Добавить замер</button>'}${currentHtml}${chartHtml}${sorted.length > 0 ? `<h2 style="margin-top:16px;">История (${sorted.length})</h2>` : ''}${listHtml}`;
         const existingBar = document.getElementById('measurements-bulk-bar');
         if (existingBar) existingBar.remove();
         if (measurementsSelectionMode && measurementsSelectedIds.size > 0) {
