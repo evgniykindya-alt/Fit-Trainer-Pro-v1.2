@@ -532,6 +532,10 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .pw-field + .pw-field { margin-top: 8px; }
 .pw-error { color: var(--danger); font-size: 0.82rem; text-align: center; min-height: 1.1em; }
 .pw-hint { color: var(--muted); font-size: 0.78rem; text-align: center; line-height: 1.4; }
+.run-menu-item { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card-2); border-radius:var(--r-sm); cursor:pointer; border:1px solid var(--border-soft); font-size:1rem; color:var(--text); font-weight:500; transition:background 0.15s; }
+.run-menu-item:active { background:var(--card-3); }
+.run-menu-item .r-icon { font-size:1.4rem; flex-shrink:0; }
+.run-menu-item.danger { color:var(--danger); }
 </style>
 </head>
 <body>
@@ -719,14 +723,14 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 </div>
 
 <div id="screen-run" class="screen">
-    <div class="start-time-display" id="start-time-display" style="display:none;">
+    <div class="start-time-display" id="start-time-display" style="display:none; text-align:center; padding-bottom: 4px;">
         <span id="start-time-label">Старт</span>
         <span id="start-time-value">--:--</span>
     </div>
     <div class="top-bar">
         <button class="back-btn" onclick="confirmExit()" aria-label="Назад">←</button>
         <h1 id="run-title" style="margin:0;">Тренировка</h1>
-        <div class="spacer"></div>
+        <button class="back-btn" onclick="openRunMenu()" aria-label="Действия" style="font-size:1.2rem;">⋮</button>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
     <div class="phase-header" id="phase-header-el"><div class="phase-label" id="phase-label">УПРАЖНЕНИЕ</div></div>
@@ -1716,7 +1720,7 @@ function askBackupPassword(opts = {}) {
             if (e.key === 'Enter') { e.preventDefault(); submit(); }
             if (e.key === 'Escape') { e.preventDefault(); finish(null); }
         });
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(null); });
+        overlay.addEventListener('click', (e) => { if (e.target === ov) finish(null); });
     });
 }
 // ==== /Шифрование бэкапа ====
@@ -6027,6 +6031,166 @@ try {
     } catch(e) {}
 } catch(e) {}
 try { applyFontSize(); applyCompactWorkouts(); } catch(e) {}
+
+// ==== Меню тренировки (⋮) ====
+function openRunMenu() {
+    if (!runState || runState.phase === 'finish') return;
+    if (hasOpenOverlay()) return;
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay';
+    ov.innerHTML = `<div class="notif-side-sheet">
+        <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+        <h2 class="sheet-title">Управление тренировкой</h2>
+        <div style="display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto;">
+            <button class="run-menu-item" onclick="closeTopSheet(); openRunQueueEditor();"><span class="r-icon">📝</span>Изменить порядок</button>
+            <button class="run-menu-item" onclick="closeTopSheet(); showScreen('screen-settings');"><span class="r-icon">⚙️</span>Настройки звука и таймеров</button>
+            <button class="run-menu-item" onclick="closeTopSheet(); finishWorkoutEarly();"><span class="r-icon">🏁</span>Завершить сейчас</button>
+            <button class="run-menu-item danger" onclick="closeTopSheet(); cancelWorkout();"><span class="r-icon">✕</span>Отменить тренировку</button>
+        </div>
+        <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
+    </div>`;
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+
+function openRunQueueEditor() {
+    if (!runState || runState.phase === 'finish') return;
+    if (hasOpenOverlay()) return;
+
+    const tempExercises = JSON.parse(JSON.stringify(runState.workout.exercises));
+    const currentIdx = runState.index;
+
+    function renderList() {
+        return tempExercises.map((el, i) => {
+            if (!el) return '';
+            let icon = '🏋️', name = el.name || 'Упражнение', sub = '', cls = '';
+            const isCurrent = i === currentIdx;
+            let isDone = false, isSkipped = false;
+            if (el.kind === 'exercise') {
+                const exIndex = tempExercises.filter((e, idx) => e && e.kind === 'exercise' && idx < i).length;
+                const totalExBefore = runState.workout.exercises.filter(e => e && e.kind === 'exercise').length;
+                // отметка "сделано" по данным runState — только для элементов, которые были в исходной очереди
+                if (runState.exerciseTimes.length > exIndex && runState.workout.exercises[i] === el) {
+                    const t = runState.exerciseTimes[exIndex];
+                    isDone = (t !== undefined && t !== null && t >= 0);
+                    isSkipped = (t === -1);
+                }
+                icon = '🏋️';
+                if (el.type === 'sets') sub = `${el.setsCount || 3}×${el.setMode === 'time' ? (el.setDuration||45)+'с' : (el.targetReps||10)+'п'}`;
+                else if (el.type === 'reps') sub = `${el.targetReps || 10} повт.`;
+                else if (el.type === 'timer') sub = formatTime(el.timerDuration || 60);
+                else sub = 'секундомер';
+            } else if (el.kind === 'warmup') {
+                icon = '🔥'; name = 'Разминка'; sub = el.mode === 'free' ? 'свободно' : formatTime(el.duration || 180);
+            } else if (el.kind === 'rest') {
+                const isW = el.restType === 'water';
+                icon = isW ? '💧' : '🛌'; name = isW ? 'Вода' : 'Отдых'; sub = el.duration === null ? 'без таймера' : formatTime(el.duration || 60);
+            }
+            const locked = isCurrent && runState.phase !== 'ready';
+            const strike = isDone ? 'text-decoration: line-through; color: var(--muted);' : (isSkipped ? 'color: var(--muted);' : '');
+            const curBadge = isCurrent ? `<span style="font-size:0.68rem; background:var(--accent); color:#0a0a10; padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">СЕЙЧАС</span>` : '';
+            return `<div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--card-2); border-radius:10px; border:1px solid ${isCurrent ? 'var(--accent)' : 'var(--border-soft)'}; ${strike}">
+                <div style="font-size:1.2rem; flex-shrink:0;">${icon}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:0.9rem; word-break:break-word;">${escapeHtml(name)}${curBadge}</div>
+                    <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">${sub}</div>
+                </div>
+                <div style="display:flex; gap:4px; flex-shrink:0;">
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},-1)" ${i === 0 || locked ? 'disabled' : ''} aria-label="Вверх">↑</button>
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},1)" ${i === tempExercises.length - 1 ? 'disabled' : ''} aria-label="Вниз">↓</button>
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--danger);" onclick="event.stopPropagation(); runQueueDelete(${i})" ${locked ? 'disabled' : ''} aria-label="Удалить">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function refresh() {
+        const el = document.getElementById('run-queue-list');
+        if (el) el.innerHTML = renderList();
+    }
+
+    window.runQueueMove = function(i, d) {
+        const j = i + d;
+        if (j < 0 || j >= tempExercises.length) return;
+        [tempExercises[i], tempExercises[j]] = [tempExercises[j], tempExercises[i]];
+        refresh();
+    };
+    window.runQueueDelete = function(i) {
+        if (i < 0 || i >= tempExercises.length) return;
+        const locked = (i === currentIdx && runState.phase !== 'ready');
+        if (locked) { showToast('Нельзя удалить текущее упражнение во время его выполнения'); return; }
+        tempExercises.splice(i, 1);
+        if (tempExercises.length === 0) { showToast('Нельзя удалить все элементы'); tempExercises.push({ kind: 'rest', restType: 'rest', duration: 60, notes: '' }); }
+        // пересчитать текущий индекс
+        if (i < currentIdx) currentIdx--;
+        else if (i === currentIdx) currentIdx = Math.min(currentIdx, tempExercises.length - 1);
+        refresh();
+    };
+    window.applyRunQueue = function() {
+        if (tempExercises.length === 0) { showToast('Очередь пуста'); return; }
+        const oldArr = runState.workout.exercises;
+        // найти текущий объект
+        const currentObj = oldArr[runState.index];
+        let newIndex = tempExercises.indexOf(currentObj);
+        if (newIndex < 0) {
+            // текущего не оказалось (был удалён) — берём ближайший по индексу
+            newIndex = Math.min(currentIdx, tempExercises.length - 1);
+            // если удалили — переходим к следующему элементу в фазе ready
+            runState.index = newIndex;
+            runState.phase = 'ready';
+            runState.currentSet = 1;
+            runState.restPhase = null;
+            runState.restFinished = false;
+            runState.restOvertime = 0;
+            runState.timerFinished = false;
+        } else {
+            runState.index = newIndex;
+        }
+        runState.workout.exercises = tempExercises;
+        saveRunState();
+        closeTopSheet();
+        renderRun();
+        showToast('✅ Порядок обновлён');
+    };
+
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay';
+    ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 88vh;">
+        <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+        <h2 class="sheet-title">Порядок тренировки</h2>
+        <div style="color:var(--muted); font-size:0.8rem; text-align:center;">Текущее упражнение заблокировано, пока выполняется</div>
+        <div id="run-queue-list" class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">${renderList()}</div>
+        <div class="sheet-fixed-bottom" style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn accent" onclick="applyRunQueue()">Применить</button>
+            <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button>
+        </div>
+    </div>`;
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+
+async function finishWorkoutEarly() {
+    if (!runState || runState.phase === 'finish') return;
+    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: '🏁 Завершить', cancelText: 'Продолжить', danger: false });
+    if (!ok) return;
+    showFinishScreen();
+}
+
+async function cancelWorkout() {
+    if (!runState || runState.phase === 'finish') return;
+    const ok = await customConfirm('Отменить тренировку?\n\nДанные НЕ сохранятся в историю.', { title: 'Отменить тренировку', okText: '✕ Отменить', cancelText: 'Продолжить', danger: true });
+    if (!ok) return;
+    stopTickInterval();
+    if (runState.countdownInterval) clearInterval(runState.countdownInterval);
+    stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock();
+    clearSavedRunState(); disableExitProtection();
+    runState = null;
+    showScreen('screen-workouts');
+    showToast('❌ Тренировка отменена');
+}
+// ==== /Меню тренировки (⋮) ====
 
 window.addEventListener('load', () => {
     setTimeout(async () => {
