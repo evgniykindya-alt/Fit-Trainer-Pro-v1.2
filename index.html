@@ -4393,9 +4393,14 @@ async function startWorkout(id) {
             if (['ready','work','rest','countdown','warmup'].includes(saved.phase)) {
                 const ageSec = saved.savedAt ? (Date.now() - saved.savedAt) / 1000 : 0;
                 const age = saved.savedAt ? ` (${formatAge(ageSec)})` : '';
-                const ok = await customConfirm(`Найдена незавершённая тренировка:\n«${saved.workoutName}»${age}\n\nПродолжить?`, { title: 'Продолжить тренировку?', okText: '▶ Продолжить', cancelText: '✕ Отменить', danger: false });
-                if (ok === true) { if (sw) { restoreRunState(saved); return; } else { showToast('Тренировка удалена'); clearSavedRunState(); } }
-                else if (ok === false) { clearSavedRunState(); if (runState) { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); runState = null; } disableExitProtection(); showToast('❌ Тренировка отменена'); return; }
+                const choice = await showStartNewConfirm(saved, age);
+                if (choice === 'resume') { if (sw) { restoreRunState(saved); return; } else { showToast('Тренировка удалена'); clearSavedRunState(); } }
+                else if (choice === 'new') {
+                    if (runState) { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); runState = null; }
+                    clearSavedRunState(); disableExitProtection();
+                    showToast('▶ Новая тренировка');
+                }
+                else if (choice === 'cancel') { clearSavedRunState(); if (runState) { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); runState = null; } disableExitProtection(); showToast('❌ Тренировка отменена'); return; }
                 else { return; }
             } else clearSavedRunState();
         }
@@ -4428,6 +4433,35 @@ async function startWorkout(id) {
             if (runState && runState.phase === 'ready' && !runState.workoutNameAnnounced && !runState._flowStarting) { beginCurrentElementFlow(true); }
         }, 400);
     } finally { startWorkoutInProgress = false; }
+}
+function showStartNewConfirm(saved, age) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'notif-side-overlay';
+        overlay.innerHTML = `<div class="notif-side-sheet">
+            <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+            <h2 class="sheet-title">Продолжить тренировку?</h2>
+            <div style="text-align:center; white-space:pre-line; padding: 4px 8px; line-height: 1.5; color: var(--text); flex: 1; overflow-y: auto;">Найдена незавершённая тренировка:\n«${escapeHtml(saved.workoutName)}»${escapeHtml(age)}\n\nПродолжить?</div>
+            <button class="btn accent" id="sn-resume">▶ Продолжить</button>
+            <button class="btn ghost" id="sn-new">Начать новую</button>
+            <button class="btn ghost" id="sn-cancel">✕ Отменить</button>
+        </div>`;
+        document.body.appendChild(overlay);
+        let resolved = false;
+        const finish = (val) => {
+            if (resolved) return;
+            resolved = true;
+            const s = overlay.querySelector('.notif-side-sheet');
+            if (s) s.style.transform = 'translateX(100%)';
+            overlay.style.opacity = '0';
+            setTimeout(() => { try { overlay.remove(); } catch(e) {} resolve(val); }, 200);
+        };
+        overlay.querySelector('#sn-resume').onclick = () => finish('resume');
+        overlay.querySelector('#sn-new').onclick = () => finish('new');
+        overlay.querySelector('#sn-cancel').onclick = () => finish('cancel');
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish('cancel'); });
+        setupSideSwipe(overlay.querySelector('.notif-side-sheet'), overlay, () => finish('cancel'));
+    });
 }
 function beginCurrentElementFlow(fromAuto = false) {
     if (!runState) return;
@@ -6285,7 +6319,7 @@ function openRunQueueEditor() {
 
 async function finishWorkoutEarly() {
     if (!runState || runState.phase === 'finish') return;
-    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: 'Завершить', cancelText: 'Продолжить', danger: false });
+    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: '🏁 Завершить', cancelText: 'Продолжить', danger: false });
     if (!ok) return;
     showFinishScreen();
 }
