@@ -1034,18 +1034,13 @@ let multiTabWarningShown = false;
 let swRegistrationGlobal = null;
 let swError = false;
 function openImportPicker(mode) {
-    // Создаём временный input вне DOM-потока, чтобы он гарантированно не рисовал нативный виджет
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
     input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
     document.body.appendChild(input);
 
-    // Гарантированный клик по скрытому инпуту
     const clickResult = input.click();
-    // Fallback: некоторые WebView не открывают диалог при клике на «невидимый» инпут
-    // Тогда показываем второй инпут, но уже без display:none — с opacity:0 и position:fixed
-    if (clickResult === undefined) { /* большинство браузеров так и возвращает */ }
 
     const cleanup = () => { try { input.remove(); } catch(e) {} };
 
@@ -1067,16 +1062,12 @@ function openImportPicker(mode) {
         reader.readAsText(file);
     });
 
-    // Отмена выбора тоже должна удалить инпут
     input.addEventListener('cancel', cleanup);
-    // Подстраховка: если change не сработал (старые WebView) — прибираем через 5 минут
     setTimeout(cleanup, 5 * 60 * 1000);
 }
 
-// Обёртки над существующими обработчиками (чтобы не дублировать код)
 function importWorkoutFromJson(text) {
     const fakeEvent = { target: { files: [{ __text: text }], value: '' } };
-    // Переиспользуем старую логику через временный файл-объект не получится — делаем вручную:
     try {
         const data = JSON.parse(text);
         if (data.type !== 'fit-trainer-workout' || !data.workout) { showToast('Не файл тренировки'); return; }
@@ -3251,7 +3242,13 @@ function renderMeasurements() {
     const c = document.getElementById('measurements-content');
     if (!c) return;
     try {
-        const sorted = [...DB.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Сортируем по дате, затем по времени создания (id) — чтобы записи за один день шли в порядке добавления
+        const sorted = [...DB.measurements].sort((a, b) => {
+            const da = new Date(a.date).getTime();
+            const db = new Date(b.date).getTime();
+            if (da !== db) return db - da;
+            return (b.id || 0) - (a.id || 0);
+        });
         const last = sorted[0];
         const first = sorted[sorted.length - 1];
         const currentWeight = last && typeof last.weight === 'number' ? last.weight : null;
@@ -3268,7 +3265,13 @@ function renderMeasurements() {
             currentHtml = `<div class="measure-current-card"><div class="measure-current-label">Текущий вес</div><div class="measure-current-value">${currentWeight.toFixed(1)}</div><div class="measure-current-unit">кг · ${formatShortDate(new Date(last.date))}</div>${deltaHtml}</div>`;
         }
         let chartHtml = '';
-        const weightData = sorted.filter(m => typeof m.weight === 'number').reverse();
+        // Для графика берём записи с весом, сортируем по дате+id по возрастанию
+        const weightData = sorted.filter(m => typeof m.weight === 'number').sort((a, b) => {
+            const da = new Date(a.date).getTime();
+            const db = new Date(b.date).getTime();
+            if (da !== db) return da - db;
+            return (a.id || 0) - (b.id || 0);
+        });
         if (weightData.length >= 2) {
             const w = 340, h = 120, pad = 20;
             const weights = weightData.map(m => m.weight);
@@ -3281,22 +3284,44 @@ function renderMeasurements() {
             const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${(h - pad).toFixed(1)} L${points[0].x.toFixed(1)},${(h - pad).toFixed(1)} Z`;
             const gridLines = [0, 0.5, 1].map(frac => { const y = pad + frac * (h - pad * 2); return `<line class="grid-line" x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}"/>`; }).join('');
             const dots = points.map(p => `<circle class="dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
-            const labels = points.map((p, i) => { if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return ''; return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(new Date(p.m.date))}</text>`; }).join('');
+            // Подписи: показываем дату, а если за день несколько точек — добавляем индекс
+            const labels = points.map((p, i) => { if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return ''; const d = new Date(p.m.date); return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(d)}</text>`; }).join('');
             chartHtml = `<div class="card"><div style="font-weight:700; margin-bottom:4px;">📊 Динамика веса</div><svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}<path class="area" d="${areaD}"/><path class="line" d="${pathD}"/>${dots}${labels}</svg></div>`;
         }
         let listHtml = '';
         if (sorted.length === 0) { listHtml = '<div class="empty-state"><span class="icon">⚖️</span><div class="title">Пока нет замеров</div>Добавьте первый — начните отслеживать прогресс.</div>'; }
         else {
-            listHtml = sorted.map(m => {
-                const extras = [];
-                if (typeof m.chest === 'number' && m.chest > 0) extras.push(`Грудь: ${m.chest}`);
-                if (typeof m.waist === 'number' && m.waist > 0) extras.push(`Талия: ${m.waist}`);
-                if (typeof m.hips === 'number' && m.hips > 0) extras.push(`Бёдра: ${m.hips}`);
-                const isChecked = measurementsSelectedIds.has(m.id);
-                if (measurementsSelectionMode) {
-                    return `<div class="measure-item" onclick="toggleMeasurementSelection(${m.id})" style="cursor:pointer;"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}" style="margin-right:8px;"></div><div class="measure-item-info"><div class="measure-item-date">${formatShortDate(new Date(m.date))}</div>${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div></div>`;
+            // Группируем по дням: заголовок дня + записи с нумерацией (1., 2., ...)
+            const groups = [];
+            let curGroup = null;
+            sorted.forEach(m => {
+                const dk = m.date;
+                if (!curGroup || curGroup.dateKey !== dk) {
+                    curGroup = { dateKey: dk, date: new Date(dk), records: [] };
+                    groups.push(curGroup);
                 }
-                return `<div class="measure-item"><div class="measure-item-info"><div class="measure-item-date">${formatShortDate(new Date(m.date))}</div>${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div><button class="icon-btn" onclick="deleteMeasurement(${m.id})" aria-label="Удалить">🗑</button></div>`;
+                curGroup.records.push(m);
+            });
+            // Внутри дня сортируем по времени добавления (id) по возрастанию
+            groups.forEach(g => {
+                g.records.sort((a, b) => (a.id || 0) - (b.id || 0));
+            });
+            listHtml = groups.map(g => {
+                const d = g.date;
+                const dayLabel = formatShortDate(d);
+                const rows = g.records.map((m, idx) => {
+                    const extras = [];
+                    if (typeof m.chest === 'number' && m.chest > 0) extras.push(`Грудь: ${m.chest}`);
+                    if (typeof m.waist === 'number' && m.waist > 0) extras.push(`Талия: ${m.waist}`);
+                    if (typeof m.hips === 'number' && m.hips > 0) extras.push(`Бёдра: ${m.hips}`);
+                    const isChecked = measurementsSelectedIds.has(m.id);
+                    const prefix = g.records.length > 1 ? `<span style="color:var(--muted); font-size:0.85rem; margin-right:6px;">${idx + 1}.</span>` : '';
+                    if (measurementsSelectionMode) {
+                        return `<div class="measure-item" onclick="toggleMeasurementSelection(${m.id})" style="cursor:pointer;"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}" style="margin-right:8px;"></div><div class="measure-item-info">${prefix}${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div></div>`;
+                    }
+                    return `<div class="measure-item"><div class="measure-item-info">${prefix}${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div><button class="icon-btn" onclick="deleteMeasurement(${m.id})" aria-label="Удалить">🗑</button></div>`;
+                }).join('');
+                return `<div style="margin-bottom:12px;"><div style="font-size:0.8rem; color:var(--muted); font-weight:700; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">📅 ${dayLabel}${g.records.length > 1 ? ' · ' + g.records.length + ' замера' : ''}</div>${rows}</div>`;
             }).join('');
         }
         c.innerHTML = `${measurementsSelectionMode ? '' : '<button class="btn accent" onclick="openMeasurementForm()" style="margin-top: 0; margin-bottom: 16px;">+ Добавить замер</button>'}${currentHtml}${chartHtml}${sorted.length > 0 ? `<h2 style="margin-top:16px;">История (${sorted.length})</h2>` : ''}${listHtml}`;
@@ -5036,7 +5061,7 @@ function renderRun() {
             else if (el.type === 'sets') info = `<p style="text-align:center; color:var(--accent); font-size:1.15rem; font-weight:700; margin-bottom:10px;">🔁 ${el.setsCount || 3}× ${el.setMode === 'reps' ? (el.targetReps || 10) + ' повт.' : (el.setDuration || 45) + ' сек'}</p>`;
             const canUndo = runState.exerciseTimes.length > 0;
             const undoBtn = canUndo ? `<button class="btn ghost" onclick="undoLastElement()" style="background:var(--card-2); color:var(--blue); margin-top:8px;">↩ Восстановить</button>` : '';
-            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}`;
+            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}</button>`;
             document.getElementById('phase-ready').style.display = 'block';
         }
     } else if (phase === 'countdown') {
@@ -6049,6 +6074,25 @@ try { applyFontSize(); applyCompactWorkouts(); } catch(e) {}
 function openRunMenu() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
+
+    // Ставим таймеры на паузу, чтобы время не шло пока открыто меню
+    let pausedWork = false, pausedRest = false, pausedWarmup = false;
+    if (runState.phase === 'work' && !runState.workPaused) { pauseTimer('work'); pausedWork = true; }
+    if (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode) { pauseTimer('rest'); pausedRest = true; }
+    if (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished) { pauseTimer('warmup'); pausedWarmup = true; }
+    runState._menuPaused = { pausedWork, pausedRest, pausedWarmup };
+
+    function resumeTimersFromMenu() {
+        if (!runState || !runState._menuPaused) return;
+        const p = runState._menuPaused;
+        runState._menuPaused = null;
+        if (p.pausedWork && runState.phase === 'work') resumeTimer('work');
+        if (p.pausedRest && runState.phase === 'rest') resumeTimer('rest');
+        if (p.pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
+        saveRunState();
+        renderRun();
+    }
+
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     ov.innerHTML = `<div class="notif-side-sheet">
@@ -6061,8 +6105,21 @@ function openRunMenu() {
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
     </div>`;
     document.body.appendChild(ov);
-    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
-    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    // Возобновляем таймеры при любом закрытии меню (крестик, свайп, клик по фону)
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov, () => { resumeTimersFromMenu(); });
+    ov.addEventListener('click', (e) => { if (e.target === ov) { resumeTimersFromMenu(); ov.remove(); } });
+    // Подменяем closeTopSheet в контексте этого меню
+    const origClose = window.closeTopSheet;
+    window.closeTopSheet = function() {
+        if (ov && document.body.contains(ov)) {
+            resumeTimersFromMenu();
+            ov.remove();
+            window.closeTopSheet = origClose;
+            updateNotifGrabber();
+            return;
+        }
+        origClose();
+    };
 }
 
 function openRunQueueEditor() {
@@ -6071,7 +6128,6 @@ function openRunQueueEditor() {
 
     const tempExercises = JSON.parse(JSON.stringify(runState.workout.exercises));
 
-    // Отмечаем выполненные/пропущенные упражнения (по порядку среди exercise)
     let exCounter = 0;
     tempExercises.forEach((el, i) => {
         el._origIndex = i;
@@ -6090,8 +6146,10 @@ function openRunQueueEditor() {
     // Пауза таймеров, чтобы состояние не «уехало» пока редактируем
     const pausedWork = (runState.phase === 'work' && !runState.workPaused);
     const pausedRest = (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode);
+    const pausedWarmup = (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished);
     if (pausedWork) pauseTimer('work');
     if (pausedRest) pauseTimer('rest');
+    if (pausedWarmup) pauseTimer('warmup');
 
     runState._queueEditing = true;
 
@@ -6100,6 +6158,7 @@ function openRunQueueEditor() {
         runState._queueEditing = false;
         if (pausedWork && runState.phase === 'work') resumeTimer('work');
         if (pausedRest && runState.phase === 'rest') resumeTimer('rest');
+        if (pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
         saveRunState();
         renderRun();
         if (runState.phase === 'ready' && runState.workout.autoStart) {
@@ -6160,7 +6219,6 @@ function openRunQueueEditor() {
     window.runQueueMove = function(i, d) {
         const j = i + d;
         if (j < 0 || j >= tempExercises.length) return;
-        // Запрещено двигать текущий, выполненные/пропущенные и всё, что выше/на текущем
         if (i <= currentIdx || tempExercises[i]._done || tempExercises[i]._skipped) return;
         if (j <= currentIdx) return;
         [tempExercises[i], tempExercises[j]] = [tempExercises[j], tempExercises[i]];
@@ -6217,7 +6275,7 @@ function openRunQueueEditor() {
 
 async function finishWorkoutEarly() {
     if (!runState || runState.phase === 'finish') return;
-    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: 'Завершить', cancelText: 'Продолжить', danger: false });
+    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: '🏁 Завершить', cancelText: 'Продолжить', danger: false });
     if (!ok) return;
     showFinishScreen();
 }
