@@ -4444,7 +4444,7 @@ function showStartNewConfirm(saved, age) {
             <div style="text-align:center; white-space:pre-line; padding: 4px 8px; line-height: 1.5; color: var(--text); flex: 1; overflow-y: auto;">Найдена незавершённая тренировка:\n«${escapeHtml(saved.workoutName)}»${escapeHtml(age)}\n\nПродолжить?</div>
             <button class="btn accent" id="sn-resume">▶ Продолжить</button>
             <button class="btn ghost" id="sn-new">Начать новую</button>
-            <button class="btn ghost" id="sn-cancel">✕ Отменить</button>
+            <button class="btn danger" id="sn-cancel">✕ Отменить</button>
         </div>`;
         document.body.appendChild(overlay);
         let resolved = false;
@@ -6319,7 +6319,7 @@ function openRunQueueEditor() {
 
 async function finishWorkoutEarly() {
     if (!runState || runState.phase === 'finish') return;
-    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: '🏁 Завершить', cancelText: 'Продолжить', danger: false });
+    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: 'Завершить', cancelText: 'Продолжить', danger: false });
     if (!ok) return;
     showFinishScreen();
 }
