@@ -3242,7 +3242,6 @@ function renderMeasurements() {
     const c = document.getElementById('measurements-content');
     if (!c) return;
     try {
-        // Сортируем по дате, затем по времени создания (id) — чтобы записи за один день шли в порядке добавления
         const sorted = [...DB.measurements].sort((a, b) => {
             const da = new Date(a.date).getTime();
             const db = new Date(b.date).getTime();
@@ -3265,7 +3264,6 @@ function renderMeasurements() {
             currentHtml = `<div class="measure-current-card"><div class="measure-current-label">Текущий вес</div><div class="measure-current-value">${currentWeight.toFixed(1)}</div><div class="measure-current-unit">кг · ${formatShortDate(new Date(last.date))}</div>${deltaHtml}</div>`;
         }
         let chartHtml = '';
-        // Для графика берём записи с весом, сортируем по дате+id по возрастанию
         const weightData = sorted.filter(m => typeof m.weight === 'number').sort((a, b) => {
             const da = new Date(a.date).getTime();
             const db = new Date(b.date).getTime();
@@ -3284,14 +3282,12 @@ function renderMeasurements() {
             const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${(h - pad).toFixed(1)} L${points[0].x.toFixed(1)},${(h - pad).toFixed(1)} Z`;
             const gridLines = [0, 0.5, 1].map(frac => { const y = pad + frac * (h - pad * 2); return `<line class="grid-line" x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}"/>`; }).join('');
             const dots = points.map(p => `<circle class="dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
-            // Подписи: показываем дату, а если за день несколько точек — добавляем индекс
             const labels = points.map((p, i) => { if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return ''; const d = new Date(p.m.date); return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(d)}</text>`; }).join('');
             chartHtml = `<div class="card"><div style="font-weight:700; margin-bottom:4px;">📊 Динамика веса</div><svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}<path class="area" d="${areaD}"/><path class="line" d="${pathD}"/>${dots}${labels}</svg></div>`;
         }
         let listHtml = '';
         if (sorted.length === 0) { listHtml = '<div class="empty-state"><span class="icon">⚖️</span><div class="title">Пока нет замеров</div>Добавьте первый — начните отслеживать прогресс.</div>'; }
         else {
-            // Группируем по дням: заголовок дня + записи с нумерацией (1., 2., ...)
             const groups = [];
             let curGroup = null;
             sorted.forEach(m => {
@@ -3302,7 +3298,6 @@ function renderMeasurements() {
                 }
                 curGroup.records.push(m);
             });
-            // Внутри дня сортируем по времени добавления (id) по возрастанию
             groups.forEach(g => {
                 g.records.sort((a, b) => (a.id || 0) - (b.id || 0));
             });
@@ -4912,7 +4907,10 @@ function updateTimersUI() {
             const dur = el.timerDuration || 60;
             const remaining = Math.max(0, dur - elapsed);
             if (t) t.innerText = formatTime(remaining);
-            if (runState.timerFinished) {
+            if (runState._menuOpen) {
+                if (t) t.style.color = 'var(--warn)';
+                setRingProgress('ring-work', 1, 'paused');
+            } else if (runState.timerFinished) {
                 setRingProgress('ring-work', 1, 'danger');
                 if (t) t.style.color = 'var(--danger)';
             } else {
@@ -4934,37 +4932,47 @@ function updateTimersUI() {
             const remaining = Math.max(0, dur - elapsed);
             if (t) t.innerText = formatTime(remaining);
             const pct = dur > 0 ? remaining / dur : 0;
-            const ringCls = runState.workPaused ? 'paused' : (remaining <= 3 ? 'danger' : 'work');
-            setRingProgress('ring-work', pct, ringCls);
+            const ringCls = (runState.workPaused || runState._menuOpen) ? 'paused' : (remaining <= 3 ? 'danger' : 'work');
+            if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
+            else { if (t) t.style.color = ''; setRingProgress('ring-work', pct, ringCls); }
             if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !finishExerciseInProgress) {
                 runState.setFinishing = true;
                 Promise.resolve(finishExercise()).finally(() => { runState.setFinishing = false; });
             }
         } else {
             if (t) t.innerText = formatTime(getCurrentElapsed('work'));
-            setRingProgress('ring-work', 1, runState.workPaused ? 'paused' : 'work');
+            if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
+            else { if (t) t.style.color = ''; setRingProgress('ring-work', 1, runState.workPaused ? 'paused' : 'work'); }
         }
     } else if (phase === 'warmup' && !runState.warmupFinished) {
         const el = document.getElementById('warmup-timer');
         if (runState.warmupMode === 'free') {
             if (el) el.innerText = formatTime(getCurrentElapsed('warmup'));
-            setRingProgress('ring-warmup', 1, runState.warmupPaused ? 'paused' : 'warmup');
+            if (runState._menuOpen) { if (el) el.style.color = 'var(--warn)'; setRingProgress('ring-warmup', 1, 'paused'); }
+            else { if (el) el.style.color = ''; setRingProgress('ring-warmup', 1, runState.warmupPaused ? 'paused' : 'warmup'); }
         } else {
             const rem = getRemainingTime('warmup');
             if (el) el.innerText = formatTime(rem);
             const dur = runState.warmupDuration || 1;
-            setRingProgress('ring-warmup', rem / dur, runState.warmupPaused ? 'paused' : 'warmup');
-            if (rem > 0 && rem <= 3 && !runState.warmupBeepPlayed && !runState.warmupPaused) { runState.warmupBeepPlayed = true; announceFinalCount(rem); }
-            if (rem === 0 && !runState.warmupFinished) onWarmupFinished();
+            if (runState._menuOpen) { if (el) el.style.color = 'var(--warn)'; setRingProgress('ring-warmup', 1, 'paused'); }
+            else { if (el) el.style.color = ''; setRingProgress('ring-warmup', rem / dur, runState.warmupPaused ? 'paused' : 'warmup'); }
+            if (rem > 0 && rem <= 3 && !runState.warmupBeepPlayed && !runState.warmupPaused && !runState._menuOpen) { runState.warmupBeepPlayed = true; announceFinalCount(rem); }
+            if (rem === 0 && !runState.warmupFinished && !runState._menuOpen) onWarmupFinished();
         }
     } else if (phase === 'rest' && !runState.restBannerMode) {
         const rem = getRemainingTime('rest');
         const el = document.getElementById('rest-timer');
         if (el) { if (runState.restFinished) el.innerText = formatTime(getOvertime('rest')); else el.innerText = formatTime(rem); }
-        if (runState.restFinished) { setRingProgress('ring-rest', 1, 'danger'); }
-        else { const dur = runState.restDuration || 1; setRingProgress('ring-rest', rem / dur, runState.restPaused ? 'paused' : 'rest'); }
-        if (rem > 0 && rem <= 3 && !runState.restBeepPlayed && !runState.restPaused && !runState.restFinished) { runState.restBeepPlayed = true; announceFinalCount(rem); }
-        if (rem === 0 && !runState.restFinished && !runState.restPaused) onRestFinished();
+        if (runState._menuOpen) {
+            if (el) el.style.color = 'var(--warn)';
+            setRingProgress('ring-rest', 1, 'paused');
+        } else {
+            if (el) el.style.color = '';
+            if (runState.restFinished) { setRingProgress('ring-rest', 1, 'danger'); }
+            else { const dur = runState.restDuration || 1; setRingProgress('ring-rest', rem / dur, runState.restPaused ? 'paused' : 'rest'); }
+        }
+        if (rem > 0 && rem <= 3 && !runState.restBeepPlayed && !runState.restPaused && !runState.restFinished && !runState._menuOpen) { runState.restBeepPlayed = true; announceFinalCount(rem); }
+        if (rem === 0 && !runState.restFinished && !runState.restPaused && !runState._menuOpen) onRestFinished();
     }
     if (document.visibilityState === 'hidden') return;
     saveCounter++;
@@ -5139,9 +5147,11 @@ function renderRun() {
             } else { timelineEl.style.display = 'none'; }
         }
         workTimer.classList.add('work-active');
-        workTimer.classList.toggle('paused', !!runState.workPaused);
-        workTimer.classList.toggle('overtime', !!(el.type === 'timer' && runState.timerFinished));
-        if (el.type === 'timer' && runState.timerFinished) {
+        workTimer.classList.toggle('paused', !!runState.workPaused || !!runState._menuOpen);
+        workTimer.classList.toggle('overtime', !!(el.type === 'timer' && runState.timerFinished && !runState._menuOpen));
+        if (runState._menuOpen) {
+            workTimer.style.color = 'var(--warn)';
+        } else if (el.type === 'timer' && runState.timerFinished) {
             workTimer.style.color = 'var(--danger)';
             currentExEl.style.color = 'var(--danger)';
         } else {
@@ -5179,15 +5189,16 @@ function renderRestElement(el) {
         else middleIcon.style.display = 'none';
     }
     if (!isBanner) {
-        if (runState.restFinished) setRingProgress('ring-rest', 1, 'danger');
+        if (runState._menuOpen) setRingProgress('ring-rest', 1, 'paused');
+        else if (runState.restFinished) setRingProgress('ring-rest', 1, 'danger');
         else { const rem = getRemainingTime('rest'); const dur = runState.restDuration || 1; setRingProgress('ring-rest', rem / dur, runState.restPaused ? 'paused' : 'rest'); }
     }
     const timerEl = document.getElementById('rest-timer');
     if (isBanner) timerEl.style.display = 'none';
     else {
         timerEl.style.display = 'flex';
-        if (runState.restFinished) { timerEl.className = 'big-timer overtime'; }
-        else { timerEl.className = 'big-timer rest-active' + (runState.restPaused ? ' paused' : ''); }
+        if (runState._menuOpen) { timerEl.className = 'big-timer paused'; timerEl.style.color = 'var(--warn)'; }
+        else { timerEl.style.color = ''; if (runState.restFinished) { timerEl.className = 'big-timer overtime'; } else { timerEl.className = 'big-timer rest-active' + (runState.restPaused ? ' paused' : ''); } }
     }
     const nextBlock = document.getElementById('next-exercise-block');
     if (runState.restFinished) nextBlock.style.display = 'none';
@@ -6075,17 +6086,19 @@ function openRunMenu() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
 
-    // Ставим таймеры на паузу, чтобы время не шло пока открыто меню
     let pausedWork = false, pausedRest = false, pausedWarmup = false;
     if (runState.phase === 'work' && !runState.workPaused) { pauseTimer('work'); pausedWork = true; }
     if (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode) { pauseTimer('rest'); pausedRest = true; }
     if (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished) { pauseTimer('warmup'); pausedWarmup = true; }
     runState._menuPaused = { pausedWork, pausedRest, pausedWarmup };
+    runState._menuOpen = true;
+    renderRun();
 
     function resumeTimersFromMenu() {
         if (!runState || !runState._menuPaused) return;
         const p = runState._menuPaused;
         runState._menuPaused = null;
+        runState._menuOpen = false;
         if (p.pausedWork && runState.phase === 'work') resumeTimer('work');
         if (p.pausedRest && runState.phase === 'rest') resumeTimer('rest');
         if (p.pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
@@ -6105,10 +6118,8 @@ function openRunMenu() {
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
     </div>`;
     document.body.appendChild(ov);
-    // Возобновляем таймеры при любом закрытии меню (крестик, свайп, клик по фону)
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov, () => { resumeTimersFromMenu(); });
     ov.addEventListener('click', (e) => { if (e.target === ov) { resumeTimersFromMenu(); ov.remove(); } });
-    // Подменяем closeTopSheet в контексте этого меню
     const origClose = window.closeTopSheet;
     window.closeTopSheet = function() {
         if (ov && document.body.contains(ov)) {
@@ -6143,7 +6154,6 @@ function openRunQueueEditor() {
 
     let currentIdx = runState.index;
 
-    // Пауза таймеров, чтобы состояние не «уехало» пока редактируем
     const pausedWork = (runState.phase === 'work' && !runState.workPaused);
     const pausedRest = (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode);
     const pausedWarmup = (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished);
