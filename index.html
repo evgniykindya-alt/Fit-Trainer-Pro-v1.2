@@ -81,6 +81,45 @@ body {
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .menu-btn:focus-visible, summary:focus-visible, .nav-btn:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px;
 }
+/* === ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ НАСТРОЕК === */
+.settings-row-with-sub {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-2);
+    border-radius: var(--r-sm);
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+.settings-row-with-sub .checkbox-row {
+    background: transparent;
+    margin-bottom: 0;
+    border-radius: 0;
+}
+.settings-row-with-sub .sub-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px 14px 14px;
+    background: transparent;
+}
+.settings-row-with-sub .sub-row label {
+    color: var(--muted);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    margin: 0;
+}
+.settings-row-with-sub .sub-row .select {
+    flex: 1;
+    margin: 0;
+    min-width: 0;
+    padding: 10px 32px 10px 12px;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+}
+.settings-row-with-sub .sub-row .select + label {
+    margin-left: 8px;
+}
 .app-container { width: 100%; height: 100vh; height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-top: var(--sat); }
 .screen { display: none; padding: 16px 16px calc(40px + var(--sab)) 16px; min-height: 100%; box-sizing: border-box; }
 body.nav-visible .screen { padding-bottom: calc(var(--nav-h) + var(--sab) + 16px); }
@@ -885,25 +924,38 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <div class="group-body">
             <div class="checkbox-row"><input type="checkbox" id="set-notify-scheduled"><label for="set-notify-scheduled">📅 Напоминать о тренировках<span class="hint">Уведомления всегда в шторке снизу</span></label></div>
             <div class="checkbox-row"><input type="checkbox" id="set-notify-show-completed"><label for="set-notify-show-completed">✅ Показывать выполненные</label></div>
-            <div class="checkbox-row" style="margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"><input type="checkbox" id="set-streak-guard"><label for="set-streak-guard">🔥 Стрик-гард<span class="hint">Напомним вечером, если серия под угрозой</span></label></div>
-<div id="streak-guard-hour-row" style="display:none; margin-bottom: 10px; background: var(--card-2); border-bottom-left-radius: var(--r-sm); border-bottom-right-radius: var(--r-sm);">
-                <label>Время:</label>
-                <select id="set-streak-guard-hour" class="select">
-                    <option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option>
-                </select>
-            </div>
-            <div class="checkbox-row"><input type="checkbox" id="set-weekly-digest"><label for="set-weekly-digest">📊 Итоги недели<span class="hint">По воскресеньям вечером</span></label></div>
-            <div class="checkbox-row" style="margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"><input type="checkbox" id="set-quiet-hours"><label for="set-quiet-hours">🌙 Тихие часы<span class="hint">Не беспокоить в заданное время</span></label></div>
-<div id="quiet-hours-row" style="display:none; margin-bottom: 10px; background: var(--card-2); border-bottom-left-radius: var(--r-sm); border-bottom-right-radius: var(--r-sm);">
-                <label>С:</label>
-                <select id="set-quiet-start" class="select">
-                    <option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option><option value="0">00:00</option>
-                </select>
-                <label>До:</label>
-                <select id="set-quiet-end" class="select">
-                    <option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
-                </select>
-            </div>
+            <div class="settings-row-with-sub">
+    <div class="checkbox-row" style="margin-bottom: 0; border-radius: 0;">
+        <input type="checkbox" id="set-streak-guard">
+        <label for="set-streak-guard">🔥 Стрик-гард<span class="hint">Напомним вечером, если серия под угрозой</span></label>
+    </div>
+    <div id="streak-guard-hour-row" class="sub-row" style="display:none; padding-bottom: 10px;">
+        <label>Время:</label>
+        <select id="set-streak-guard-hour" class="select">
+            <option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option>
+        </select>
+    </div>
+</div>
+
+<!-- Итоги недели остаются как были -->
+<div class="checkbox-row"><input type="checkbox" id="set-weekly-digest"><label for="set-weekly-digest">📊 Итоги недели<span class="hint">По воскресеньям вечером</span></label></div>
+
+<div class="settings-row-with-sub">
+    <div class="checkbox-row" style="margin-bottom: 0; border-radius: 0;">
+        <input type="checkbox" id="set-quiet-hours">
+        <label for="set-quiet-hours">🌙 Тихие часы<span class="hint">Не беспокоить в заданное время</span></label>
+    </div>
+    <div id="quiet-hours-row" class="sub-row" style="display:none; padding-bottom: 10px;">
+        <label>С:</label>
+        <select id="set-quiet-start" class="select">
+            <option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option><option value="0">00:00</option>
+        </select>
+        <label>До:</label>
+        <select id="set-quiet-end" class="select">
+            <option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
+        </select>
+    </div>
+</div>
             <div class="sound-section"><div class="sound-section-title">Время отсрочки («Позже»)</div><div class="sound-options" id="snooze-duration-options"></div></div>
         </div>
     </details>
