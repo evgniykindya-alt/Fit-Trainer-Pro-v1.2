@@ -81,7 +81,6 @@ body {
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .menu-btn:focus-visible, summary:focus-visible, .nav-btn:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px;
 }
-/* === ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ НАСТРОЕК === */
 .settings-row-with-sub {
     display: flex;
     flex-direction: column;
@@ -5383,6 +5382,9 @@ function showFinishScreen() {
     clearSavedRunState(); disableExitProtection();
     const muteBtnEl = document.getElementById('timer-mute-btn');
     if (muteBtnEl) muteBtnEl.style.display = 'none';
+    
+    const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
+    if (runMenuBtn) runMenuBtn.style.display = 'none';
     const endTime = new Date();
     const totalDuration = Math.floor((endTime - runState.startTime) / 1000);
     document.getElementById('phase-label').style.display = 'none';
