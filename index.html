@@ -6285,7 +6285,7 @@ function openRunQueueEditor() {
 
 async function finishWorkoutEarly() {
     if (!runState || runState.phase === 'finish') return;
-    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: '🏁 Завершить', cancelText: 'Продолжить', danger: false });
+    const ok = await customConfirm('Завершить тренировку сейчас?\n\nДанные сохранятся в историю.', { title: 'Завершить тренировку', okText: 'Завершить', cancelText: 'Продолжить', danger: false });
     if (!ok) return;
     showFinishScreen();
 }
