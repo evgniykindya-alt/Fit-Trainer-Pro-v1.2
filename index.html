@@ -613,6 +613,12 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .exercise-table tr:last-child td { border-bottom: none; }
 .exercise-table .val-cell { font-weight: 700; color: var(--accent); white-space: nowrap; }
 .exercise-table .sets-row { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+
+/* ==== ФИКС: отступ списка программ, чтобы форма не наезжала на кнопку ==== */
+#programs-list { margin-top: 14px; }
+#programs-list > .card { margin-top: 8px; }
+/* ==== ФИКС: жёстко центрируем заголовок на экране тренировки ==== */
+#screen-run .top-bar h1#run-title { flex: 1 1 auto; text-align: center; margin: 0; padding: 0 4px; }
 </style>
 </head>
 <body>
@@ -1156,7 +1162,6 @@ function openImportPicker(mode) {
 }
 
 function importWorkoutFromJson(text) {
-    const fakeEvent = { target: { files: [{ __text: text }], value: '' } };
     try {
         const data = JSON.parse(text);
         if (data.type !== 'fit-trainer-workout' || !data.workout) { showToast('Не файл тренировки'); return; }
@@ -1822,7 +1827,7 @@ function askBackupPassword(opts = {}) {
             if (e.key === 'Enter') { e.preventDefault(); submit(); }
             if (e.key === 'Escape') { e.preventDefault(); finish(null); }
         });
-        overlay.addEventListener('click', (e) => { if (e.target === ov) finish(null); });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(null); });
     });
 }
 // ==== /Шифрование бэкапа ====
@@ -5120,6 +5125,9 @@ async function startWorkout(id, isDeload) {
     if (runState && runState.phase !== 'finish') { showToast('⚠️ Тренировка уже запущена'); return; }
     startWorkoutInProgress = true;
     try {
+        // ФИКС: возвращаем ⋮ и центрирование заголовка при старте новой тренировки
+        _restoreRunHeaderForNewWorkout();
+
         const saved = loadSavedRunState();
         if (saved && saved.workoutId && saved.phase && saved.phase !== 'finish') {
             const sw = DB.workouts.find(x => x.id === saved.workoutId);
@@ -5190,6 +5198,24 @@ async function startWorkout(id, isDeload) {
         }, 400);
     } finally { startWorkoutInProgress = false; }
 }
+
+// ФИКС: возврат ⋮ и центрирования заголовка
+function _restoreRunHeaderForNewWorkout() {
+    const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
+    if (runMenuBtn) {
+        runMenuBtn.style.display = '';
+        runMenuBtn.style.visibility = '';
+        runMenuBtn.style.pointerEvents = '';
+    }
+    const runTitle = document.getElementById('run-title');
+    if (runTitle) {
+        runTitle.style.flex = '1';
+        runTitle.style.textAlign = 'center';
+        runTitle.style.margin = '0';
+        runTitle.style.padding = '0 4px';
+    }
+}
+
 function showStartNewConfirm(saved, age) {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -5656,6 +5682,71 @@ function undoLastElement() {
     setTimeout(() => { if (runState && runState.phase === 'ready' && runState.index === targetIndex) { unlockAudio(); proceedWithElement(false); } }, 100);
 }
 
+// ФИКС: отдельные функции для колец с порогом 5 секунд
+function _updateWorkTimerRing(el, t) {
+    const elapsed = getCurrentElapsed('work');
+    const dur = el.timerDuration || 60;
+    const remaining = Math.max(0, dur - elapsed);
+    if (t) t.innerText = formatTime(remaining);
+    if (runState._menuOpen) {
+        if (t) t.style.color = 'var(--warn)';
+        setRingProgress('ring-work', 1, 'paused');
+    } else if (runState.timerFinished) {
+        setRingProgress('ring-work', 1, 'danger');
+        if (t) t.style.color = 'var(--danger)';
+    } else {
+        if (t) t.style.color = '';
+        const pct = dur > 0 ? remaining / dur : 0;
+        const ringCls = runState.workPaused ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
+        setRingProgress('ring-work', pct, ringCls);
+    }
+    // Озвучка/бип последних 5 секунд
+    if (remaining > 0 && remaining <= 5 && !runState.timerBeepPlayed && !runState.workPaused) {
+        runState.timerBeepPlayed = true;
+        announceFinalCount(remaining);
+    }
+    if (remaining <= 0 && !runState.timerFinished && !runState.workPaused && !finishExerciseInProgress) {
+        onExerciseTimerFinished();
+    }
+}
+function _updateSetTimeRing(el, t) {
+    const elapsed = getCurrentElapsed('work');
+    const dur = el.setDuration || 45;
+    const remaining = Math.max(0, dur - elapsed);
+    if (t) t.innerText = formatTime(remaining);
+    const pct = dur > 0 ? remaining / dur : 0;
+    const ringCls = (runState.workPaused || runState._menuOpen) ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
+    if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
+    else { if (t) t.style.color = ''; setRingProgress('ring-work', pct, ringCls); }
+    if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !finishExerciseInProgress) {
+        runState.setFinishing = true;
+        Promise.resolve(finishExercise()).finally(() => { runState.setFinishing = false; });
+    }
+}
+function _updateRestRing() {
+    const rem = getRemainingTime('rest');
+    const el = document.getElementById('rest-timer');
+    if (el) { if (runState.restFinished) el.innerText = formatTime(getOvertime('rest')); else el.innerText = formatTime(rem); }
+    if (runState._menuOpen) {
+        if (el) el.style.color = 'var(--warn)';
+        setRingProgress('ring-rest', 1, 'paused');
+    } else {
+        if (el) el.style.color = '';
+        if (runState.restFinished) {
+            setRingProgress('ring-rest', 1, 'danger');
+        } else {
+            const dur = runState.restDuration || 1;
+            const ringCls = runState.restPaused ? 'paused' : (rem <= 5 ? 'danger' : 'rest');
+            setRingProgress('ring-rest', rem / dur, ringCls);
+        }
+    }
+    if (rem > 0 && rem <= 5 && !runState.restBeepPlayed && !runState.restPaused && !runState.restFinished && !runState._menuOpen) {
+        runState.restBeepPlayed = true;
+        announceFinalCount(rem);
+    }
+    if (rem === 0 && !runState.restFinished && !runState.restPaused && !runState._menuOpen) onRestFinished();
+}
+
 function updateTimersUI() {
     if (!runState) return;
     const { phase } = runState;
@@ -5693,42 +5784,9 @@ function updateTimersUI() {
         if (!el) return;
         const t = document.getElementById('work-timer');
         if (el.type === 'timer') {
-            const elapsed = getCurrentElapsed('work');
-            const dur = el.timerDuration || 60;
-            const remaining = Math.max(0, dur - elapsed);
-            if (t) t.innerText = formatTime(remaining);
-            if (runState._menuOpen) {
-                if (t) t.style.color = 'var(--warn)';
-                setRingProgress('ring-work', 1, 'paused');
-            } else if (runState.timerFinished) {
-                setRingProgress('ring-work', 1, 'danger');
-                if (t) t.style.color = 'var(--danger)';
-            } else {
-                if (t) t.style.color = '';
-                const pct = dur > 0 ? remaining / dur : 0;
-                const ringCls = runState.workPaused ? 'paused' : (remaining <= 3 ? 'danger' : 'work');
-                setRingProgress('ring-work', pct, ringCls);
-            }
-            if (remaining > 0 && remaining <= 3 && !runState.timerBeepPlayed && !runState.workPaused) {
-                runState.timerBeepPlayed = true;
-                announceFinalCount(remaining);
-            }
-            if (remaining <= 0 && !runState.timerFinished && !runState.workPaused && !finishExerciseInProgress) {
-                onExerciseTimerFinished();
-            }
+            _updateWorkTimerRing(el, t);
         } else if (el.type === 'sets' && el.setMode === 'time') {
-            const elapsed = getCurrentElapsed('work');
-            const dur = el.setDuration || 45;
-            const remaining = Math.max(0, dur - elapsed);
-            if (t) t.innerText = formatTime(remaining);
-            const pct = dur > 0 ? remaining / dur : 0;
-            const ringCls = (runState.workPaused || runState._menuOpen) ? 'paused' : (remaining <= 3 ? 'danger' : 'work');
-            if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
-            else { if (t) t.style.color = ''; setRingProgress('ring-work', pct, ringCls); }
-            if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !finishExerciseInProgress) {
-                runState.setFinishing = true;
-                Promise.resolve(finishExercise()).finally(() => { runState.setFinishing = false; });
-            }
+            _updateSetTimeRing(el, t);
         } else {
             if (t) t.innerText = formatTime(getCurrentElapsed('work'));
             if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
@@ -5750,19 +5808,7 @@ function updateTimersUI() {
             if (rem === 0 && !runState.warmupFinished && !runState._menuOpen) onWarmupFinished();
         }
     } else if (phase === 'rest' && !runState.restBannerMode) {
-        const rem = getRemainingTime('rest');
-        const el = document.getElementById('rest-timer');
-        if (el) { if (runState.restFinished) el.innerText = formatTime(getOvertime('rest')); else el.innerText = formatTime(rem); }
-        if (runState._menuOpen) {
-            if (el) el.style.color = 'var(--warn)';
-            setRingProgress('ring-rest', 1, 'paused');
-        } else {
-            if (el) el.style.color = '';
-            if (runState.restFinished) { setRingProgress('ring-rest', 1, 'danger'); }
-            else { const dur = runState.restDuration || 1; setRingProgress('ring-rest', rem / dur, runState.restPaused ? 'paused' : 'rest'); }
-        }
-        if (rem > 0 && rem <= 3 && !runState.restBeepPlayed && !runState.restPaused && !runState.restFinished && !runState._menuOpen) { runState.restBeepPlayed = true; announceFinalCount(rem); }
-        if (rem === 0 && !runState.restFinished && !runState.restPaused && !runState._menuOpen) onRestFinished();
+        _updateRestRing();
     }
     if (document.visibilityState === 'hidden') return;
     saveCounter++;
@@ -6085,13 +6131,28 @@ function showFinishScreen() {
     stopRestAlarm(); stopExerciseAlarm();
     if (runState) stopTimer('warmup');
     clearSavedRunState(); disableExitProtection();
+
     const muteBtnEl = document.getElementById('timer-mute-btn');
     if (muteBtnEl) muteBtnEl.style.display = 'none';
-    
+
+    // ФИКС: прячем ⋮ и жёстко центрируем заголовок на экране завершения
     const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
-    if (runMenuBtn) runMenuBtn.style.display = 'none';
+    if (runMenuBtn) {
+        runMenuBtn.style.display = 'none';
+        runMenuBtn.style.visibility = 'hidden';
+        runMenuBtn.style.pointerEvents = 'none';
+    }
+    const runTitle = document.getElementById('run-title');
+    if (runTitle) {
+        runTitle.style.flex = '1';
+        runTitle.style.textAlign = 'center';
+        runTitle.style.margin = '0';
+        runTitle.style.padding = '0 4px';
+    }
+
     const endTime = new Date();
     const totalDuration = Math.floor((endTime - runState.startTime) / 1000);
+
     document.getElementById('phase-label').style.display = 'none';
     const phaseHeaderEl = document.getElementById('phase-header-el');
     if (phaseHeaderEl) phaseHeaderEl.style.display = 'none';
@@ -6101,11 +6162,13 @@ function showFinishScreen() {
     document.getElementById('start-time-display').style.display = 'none';
     const sb = document.getElementById('set-badge');
     if (sb) sb.style.display = 'none';
+
     hideAllPhases();
     playBeep(1000, 0.8);
     if (navigator.vibrate && !(runState && runState.isMuted)) navigator.vibrate([300, 100, 300, 100, 300]);
     speak('Тренировка завершена. Отличная работа!');
     fireConfetti();
+
     const exerciseOriginalIndices = [];
     const exerciseTypes = [];
     runState.workout.exercises.forEach((el, i) => {
@@ -6114,6 +6177,7 @@ function showFinishScreen() {
             exerciseTypes.push(el.type === 'timer' ? 'time' : (el.type === 'sets' && el.setMode === 'time' ? 'time' : 'reps'));
         }
     });
+
     const record = {
         id: Date.now(), workoutId: runState.workout.id, workoutName: runState.workout.name,
         startTime: runState.startTime.toISOString(), endTime: endTime.toISOString(),
@@ -6134,12 +6198,18 @@ function showFinishScreen() {
     const removed = pruneHistory(HISTORY_PRUNE_LIMIT);
     if (removed > 0) setTimeout(() => showToast(`📜 История обрезана до ${HISTORY_PRUNE_LIMIT} записей`), 800);
     saveDB('history');
+
     const noteItems = [];
     runState.workout.exercises.forEach((el, i) => {
-        if (el.kind === 'exercise' && runState.exerciseNotes[i]) { noteItems.push(`<div style="padding:8px 0; border-bottom:1px solid var(--border-soft);"><div style="font-size:0.9rem; color:var(--muted);">${escapeHtml(el.name)}</div><div style="color:var(--text); font-size:0.9rem; margin-top:2px;">${escapeHtml(runState.exerciseNotes[i])}</div></div>`); }
+        if (el.kind === 'exercise' && runState.exerciseNotes[i]) {
+            noteItems.push(`<div style="padding:8px 0; border-bottom:1px solid var(--border-soft);"><div style="font-size:0.9rem; color:var(--muted);">${escapeHtml(el.name)}</div><div style="color:var(--text); font-size:0.9rem; margin-top:2px;">${escapeHtml(runState.exerciseNotes[i])}</div></div>`);
+        }
     });
+
     let exListHtml = '';
-    if ((runState.warmupSeconds || 0) > 0) { exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--warn); font-size:0.9rem;">🔥 Разминка</span><span style="color:var(--warn); font-weight:700;">${formatTime(runState.warmupSeconds)}</span></div>`; }
+    if ((runState.warmupSeconds || 0) > 0) {
+        exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--warn); font-size:0.9rem;">🔥 Разминка</span><span style="color:var(--warn); font-weight:700;">${formatTime(runState.warmupSeconds)}</span></div>`;
+    }
     let exCounter = 0;
     runState.workout.exercises.forEach((el, i) => {
         if (el.kind !== 'exercise') return;
@@ -6149,9 +6219,9 @@ function showFinishScreen() {
         const isSkipped = t !== undefined && t !== null && t < 0;
         let setsInfo = '';
         if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
-        else if (sets === 'skipped') setsInfo = '';
         exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${exCounter}. ${escapeHtml(el.name || 'Упражнение')}${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
     });
+
     document.getElementById('phase-finish').innerHTML = `
         <div class="finish-card" style="margin-top:0;"><div class="finish-title">🎉 Готово!</div><div class="stats-grid"><div class="stat-row"><div class="stat-label">🕐 Начало</div><div class="stat-value">${formatClock(runState.startTime)}</div></div><div class="stat-row"><div class="stat-label">🏁 Конец</div><div class="stat-value">${formatClock(endTime)}</div></div><div class="stat-row"><div class="stat-label">⏱ Длительность</div><div class="stat-value">${formatTime(totalDuration)}</div></div><div class="stat-row"><div class="stat-label">💪 Работа</div><div class="stat-value highlight">${formatTime(runState.totalWorkTime)}</div></div>${(runState.warmupSeconds || 0) > 0 ? `<div class="stat-row"><div class="stat-label">🔥 Разминка</div><div class="stat-value">${formatTime(runState.warmupSeconds)}</div></div>` : ''}</div></div>
         ${noteItems.length ? `<details open style="margin-top:12px; background:var(--card); border-radius:var(--r-md); border:1px solid var(--border-soft);"><summary style="padding:14px 16px; font-weight:600;">📝 Заметки по упражнениям</summary><div style="padding:0 16px 16px;">${noteItems.join('')}</div></details>` : ''}
