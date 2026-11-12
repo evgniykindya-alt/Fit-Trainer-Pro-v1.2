@@ -1486,7 +1486,6 @@ DB.settings.hiddenMenuItems = DB.settings.hiddenMenuItems.filter(k => HIDEABLE_M
 if (!Array.isArray(DB.settings.hiddenBottomNavItems)) DB.settings.hiddenBottomNavItems = [];
 DB.settings.hiddenBottomNavItems = DB.settings.hiddenBottomNavItems.filter(k => HIDEABLE_MENU_KEYS.includes(k));
 
-// ==== Кэш агрегатов Активности ====
 const activityCache = { key: null, value: null };
 function invalidateActivityCache() { activityCache.key = null; activityCache.value = null; }
 function getActivityCacheKey() {
@@ -1729,7 +1728,6 @@ function showShareFallback(text) {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
 }
 
-// ==== Шифрование бэкапа ====
 function bufToB64(buf) {
     const bytes = new Uint8Array(buf);
     let bin = '';
@@ -1839,14 +1837,12 @@ function askBackupPassword(opts = {}) {
         overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(null); });
     });
 }
-// ==== /Шифрование бэкапа ====
 
 const HISTORY_PRUNE_LIMIT = 500;
 const HISTORY_HARD_LIMIT = 500;
 function pruneHistory(maxRecords = HISTORY_PRUNE_LIMIT) {
     if (!Array.isArray(DB.history)) return 0;
     if (DB.history.length <= maxRecords) return 0;
-    // ФИКС: фильтруем битые элементы перед сортировкой
     const valid = DB.history.filter(r => r && r.startTime);
     const invalidCount = DB.history.length - valid.length;
     if (invalidCount > 0) { DB.history = valid; }
@@ -2223,7 +2219,6 @@ function renderSnoozeDurationOptions() {
 }
 function selectSnoozeDuration(v) { DB.settings.snoozeDuration = v; saveDB('settings'); renderSnoozeDurationOptions(); }
 
-// ==== Порядок и свёрнутость карточек Активности ====
 const ACTIVITY_CARDS_DEFAULT = ['week','heatmap','timeofday','weeks','besthour','exercise-progress','plan','total'];
 const ACTIVITY_CARDS_LABELS = {
     week: '📊 Неделя',
@@ -2285,15 +2280,12 @@ function wrapActivityCard(key, bodyHtml) {
         <div class="activity-card-body" style="${collapsed ? 'display:none;' : ''}">${bodyHtml}</div>
     </div>`;
 }
-// ==== /Порядок и свёрнутость карточек Активности ====
 
-// ==== Прогресс по упражнениям (Activity) ====
 let activityExerciseSelected = null;
 let activityExercisePeriod = 30;
 let activityExerciseMetric = 'max';
 let activityTableSort = 'date-desc';
 
-// ФИКС: подтягиваем имена из тренировки, даже если в старой записи их нет
 function ensureExerciseNamesForRecord(r) {
     if (!r || typeof r !== 'object') return [];
     if (Array.isArray(r.exerciseNames) && r.exerciseNames.length > 0) return r.exerciseNames;
@@ -2317,7 +2309,6 @@ function ensureExerciseNamesForRecord(r) {
     return names;
 }
 
-// ФИКС: подтягиваем типы из тренировки, если в старой записи их нет
 function ensureExerciseTypesForRecord(r) {
     if (!r || typeof r !== 'object') return null;
     const names = r.exerciseNames || [];
@@ -2564,9 +2555,7 @@ function renderActivityExerciseChart() {
         ${tableHtml}
     `;
 }
-// ==== /Прогресс по упражнениям (Activity) ====
 
-// ==== Работа по неделям (Activity) ====
 function setWeekMetric(v) { if (!['work','duration','count','plan'].includes(v)) return; DB.settings.weekMetric = v; saveDB('settings'); invalidateActivityCache(); renderActivity(); }
 function setWeekRange(v) { v = parseInt(v) || 8; if (![4,8,12].includes(v)) v = 8; DB.settings.weekRange = v; saveDB('settings'); invalidateActivityCache(); renderActivity(); }
 
@@ -2754,7 +2743,6 @@ function showWeekActivityDetail(startKey) {
         ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
     } catch(e) { console.error('[showWeekActivityDetail]', e); }
 }
-// ==== /Работа по неделям (Activity) ====
 
 let exitProtectionActive = false;
 function enableExitProtection() { if (exitProtectionActive) return; exitProtectionActive = true; try { history.pushState({ ftProtected: true, ts: Date.now() }, '', location.href); } catch(e) {} }
@@ -3135,7 +3123,6 @@ function openNotifCenter() {
         if (plans.length > 0) {
             html += `<div class="notif-section-title">📅 Планы на сегодня</div>`;
             plans.forEach((p, idx) => {
-                // ФИКС: бейдж "Разгрузка" перенесен на новую строку
                 const deloadBadge = p.isDeload ? `<div style="margin-top:4px;"><span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px; display:inline-block;">РАЗГРУЗКА</span></div>` : '';
                 if (p.dismissed) {
                     html += `<div class="notif-item disabled"><div class="notif-status" style="color:var(--muted); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}</div>${deloadBadge}<div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${p.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px;border-radius:10px; font-weight:700;">🔔</button></div>`;
@@ -3227,7 +3214,6 @@ function snoozeAllNotifications(btn) {
     const hours = DB.settings.snoozeDuration || 2;
     const until = Date.now() + hours * 60 * 60 * 1000;
     list.forEach(n => { DB.settings.dismissedUntil[n.key] = until; });
-    // ФИКС: сбрасываем lastNotifAutoShow, чтобы шторка снова показалась в этот день после snooze
     DB.settings.lastNotifAutoShow = '';
     saveDB('settings');
     const ov = btn.closest('.notif-side-overlay');
@@ -3635,7 +3621,6 @@ function saveNewOrder() {
     DB[dbKey] = ro; saveDB(dbKey);
 }
 
-// ФИКС: Клик по заголовку открывает активность, клик по стрелке - сворачивает.
 function toggleHomeStreak() {
     DB.settings.homeStreakCollapsed = !DB.settings.homeStreakCollapsed;
     saveDB('settings');
@@ -3772,7 +3757,6 @@ function buildLast30DaysGrid() {
     return html;
 }
 
-// ФИКС: Стрик-баннер кликабельный (открывает Активность), а стрелочка сворачивает.
 function renderStreakBanner() {
     const el = document.getElementById('streak-banner-home');
     if (!el) return;
@@ -3945,8 +3929,6 @@ function showDayActivityDetail(key) {
         const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
         const startT = new Date(r.startTime);
         const endT = r.endTime ? new Date(r.endTime) : new Date(startT.getTime() + (r.totalDuration || 0) * 1000);
-        const hasWarmup = (r.warmupSeconds || 0) > 0;
-        const origIdxs = getExerciseOriginalIndices(r);
         listHtml += `<div class="history-card" style="margin:0;">
             <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">🕐 ${formatClock(startT)} → ${formatClock(endT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
             ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
@@ -4483,7 +4465,12 @@ function showCalendarDay(year, month, day) {
         if (entries.length === 0) { showToast(`${title} · нет планов`); return; }
         const ov = document.createElement('div');
         ov.className = 'notif-side-overlay';
-        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; return `<div class="notif-item" style="cursor:pointer;" onclick="closeTopSheet(); startWorkout(${e.wid}, ${!!e.isDeload})"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { 
+            const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; 
+            const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; 
+            const isDone = e.status.status === 'done';
+            const startAction = isDone ? `showHistoryDetail(${e.wid})` : `closeTopSheet(); startWorkout(${e.wid}, ${!!e.isDeload})`;
+            return `<div class="notif-item" style="cursor:pointer;" onclick="${startAction}"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div><div style="font-size:1.2rem; color:var(--muted);">›</div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
         document.body.appendChild(ov);
         setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
         ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -5195,10 +5182,7 @@ async function startWorkout(id, isDeload) {
     if (runState && runState.phase === 'finish') { runState = null; }
     startWorkoutInProgress = true;
     try {
-        // ФИКС: возвращаем ⋮ и центрирование заголовка при старте новой тренировки
         _restoreRunHeaderForNewWorkout();
-
-        // ФИКС: проверяем, что isDeload строго true, а не truthy
         isDeload = (isDeload === true);
 
         const saved = loadSavedRunState();
@@ -5272,7 +5256,6 @@ async function startWorkout(id, isDeload) {
     } finally { startWorkoutInProgress = false; }
 }
 
-// ФИКС: возврат ⋮ и центрирования заголовка
 function _restoreRunHeaderForNewWorkout() {
     const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
     if (runMenuBtn) {
@@ -5524,7 +5507,6 @@ function beginRestPhase(restEl) {
     }
     speakAtElementStart(speech);
     saveRunState(); renderRun();
-    // ФИКС: принудительно сохраняем состояние в "водном" баннере
     if (runState.restBannerMode) saveRunState();
 }
 function toggleWorkPause() {
@@ -5757,7 +5739,6 @@ function undoLastElement() {
     setTimeout(() => { if (runState && runState.phase === 'ready' && runState.index === targetIndex) { unlockAudio(); proceedWithElement(false); } }, 100);
 }
 
-// ФИКС: отдельные функции для колец с порогом 5 секунд
 function _updateWorkTimerRing(el, t) {
     const elapsed = getCurrentElapsed('work');
     const dur = el.timerDuration || 60;
@@ -5765,7 +5746,6 @@ function _updateWorkTimerRing(el, t) {
     if (t) t.innerText = formatTime(remaining);
     if (runState._menuOpen) {
         if (t) t.style.color = 'var(--warn)';
-        // ФИКС: сохраняем реальный процент, а не 100%
         const pct = dur > 0 ? remaining / dur : 0;
         setRingProgress('ring-work', pct, 'paused');
     } else if (runState.timerFinished) {
@@ -5777,7 +5757,6 @@ function _updateWorkTimerRing(el, t) {
         const ringCls = runState.workPaused ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
         setRingProgress('ring-work', pct, ringCls);
     }
-    // Озвучка/бип последних 5 секунд
     if (remaining > 0 && remaining <= 5 && !runState.timerBeepPlayed && !runState.workPaused) {
         runState.timerBeepPlayed = true;
         announceFinalCount(remaining);
@@ -6008,7 +5987,6 @@ function renderRun() {
             pauseBtn.style.display = 'block'; pauseBtn.innerText = runState.warmupPaused ? '▶ Продолжить' : '⏸ Пауза';
             finishEarlyBtn.style.display = 'none'; skipBtn.style.display = 'none';
             confirmBtn.style.display = 'block'; confirmBtn.innerText = '✅ Готов';
-            // ФИКС: для свободной разминки кольцо показывает "бегущую" анимацию
             setRingProgress('ring-warmup', 0.5, runState.warmupPaused ? 'paused' : 'warmup');
         } else if (runState.warmupFinished) {
             phaseLabel.innerText = '✅ Разминка завершена';
@@ -6216,7 +6194,6 @@ function showFinishScreen() {
     const muteBtnEl = document.getElementById('timer-mute-btn');
     if (muteBtnEl) muteBtnEl.style.display = 'none';
 
-    // ФИКС: прячем ⋮ и жёстко центрируем заголовок на экране завершения
     const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
     if (runMenuBtn) {
         runMenuBtn.style.display = 'none';
@@ -6421,8 +6398,8 @@ function renderHistoryList() {
         if (historySelectionMode) {
             return `<div class="history-card" onclick="toggleHistorySelection(${r.id})" style="cursor:pointer;"><div class="history-top"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}"></div><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)}</div></div></div></div>`;
         }
-        return `<div class="swipe-container" data-history-id="${r.id}"><button class="swipe-delete-btn" data-delete-id="${r.id}">🗑 Удалить</button><div class="history-card">
-            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}${hasWarmup ? ' · 🔥 ' + formatTime(r.warmupSeconds) : ''}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button><button class="icon-btn delete" onclick="deleteHistoryRecord(${r.id})" title="Удалить" aria-label="Удалить">🗑</button></div></div>
+        return `<div class="swipe-container" data-history-id="${r.id}"><button class="swipe-delete-btn" data-delete-id="${r.id}">🗑 Удалить</button><div class="history-card" onclick="openHistoryItemDetail(${r.id})">
+            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}${hasWarmup ? ' · 🔥 ' + formatTime(r.warmupSeconds) : ''}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="event.stopPropagation(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="event.stopPropagation(); shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button><button class="icon-btn delete" onclick="event.stopPropagation(); deleteHistoryRecord(${r.id})" title="Удалить" aria-label="Удалить">🗑</button></div></div>
             ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
         </div></div>`;
     }).join('');
@@ -6438,6 +6415,75 @@ function renderHistoryList() {
         document.body.appendChild(bar);
     }
 }
+
+// ==== Подробная статистика записи из истории ====
+function openHistoryItemDetail(id) {
+    const r = DB.history.find(x => x.id === id);
+    if (!r) { showToast('Запись не найдена'); return; }
+    const startT = new Date(r.startTime);
+    const endT = r.endTime ? new Date(r.endTime) : new Date(startT.getTime() + (r.totalDuration || 0) * 1000);
+    const totalDuration = r.totalDuration || 0;
+    const workTime = r.workTime || 0;
+    const warmupSeconds = r.warmupSeconds || 0;
+    const exNames = r.exerciseNames || [];
+    const exTimes = r.exerciseTimes || [];
+    const setResults = r.setResults || {};
+    const origIdxs = getExerciseOriginalIndices(r);
+    let exListHtml = '';
+    if (warmupSeconds > 0) {
+        exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--warn); font-size:0.9rem;">🔥 Разминка</span><span style="color:var(--warn); font-weight:700;">${formatTime(warmupSeconds)}</span></div>`;
+    }
+    exNames.forEach((name, i) => {
+        const t = exTimes[i];
+        const origIdx = origIdxs[i] !== undefined ? origIdxs[i] : i;
+        const sets = setResults[origIdx];
+        const isSkipped = t !== undefined && t !== null && t < 0;
+        let setsInfo = '';
+        if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
+        exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${i + 1}. ${escapeHtml(name || 'Упражнение')}${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
+    });
+    let notesHtml = '';
+    if (r.exerciseNotes && Object.keys(r.exerciseNotes).length > 0) {
+        const items = Object.entries(r.exerciseNotes).map(([idx, note]) => {
+            const exIdx = parseInt(idx);
+            const name = exNames[origIdxs.indexOf(exIdx)] || 'Упражнение';
+            return `<div style="padding:8px 0; border-bottom:1px solid var(--border-soft);"><div style="font-size:0.9rem; color:var(--muted);">${escapeHtml(name)}</div><div style="color:var(--text); font-size:0.9rem; margin-top:2px;">${escapeHtml(note)}</div></div>`;
+        }).join('');
+        notesHtml = `<div style="margin-top:12px;"><div style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📝 Заметки</div>${items}</div>`;
+    }
+    const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay';
+    ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 85vh;">
+        <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+        <h2 class="sheet-title">${escapeHtml(r.workoutName)}</h2>
+        <div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right: 4px;">
+            <div class="history-summary-card" style="margin-bottom:0; padding:14px;">
+                <div class="history-summary-title">Статистика</div>
+                <div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;">
+                    <div class="history-summary-item"><div class="val">${formatClock(startT)}</div><div class="lbl">🕐 Начало</div></div>
+                    <div class="history-summary-item"><div class="val">${formatClock(endT)}</div><div class="lbl">🏁 Конец</div></div>
+                    <div class="history-summary-item"><div class="val">${formatTime(totalDuration)}</div><div class="lbl">⏱ Длит.</div></div>
+                    <div class="history-summary-item"><div class="val" style="color:var(--accent);">${formatTime(workTime)}</div><div class="lbl">💪 Работа</div></div>
+                    ${warmupSeconds > 0 ? `<div class="history-summary-item"><div class="val" style="color:var(--warn);">${formatTime(warmupSeconds)}</div><div class="lbl">🔥 Разминка</div></div>` : ''}
+                </div>
+            </div>
+            <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Упражнения</div>
+            ${exListHtml}
+            ${notesHtml}
+            ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
+        </div>
+        <div class="sheet-fixed-bottom" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
+            ${wExists ? `<button class="btn accent" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})">▶ Повторить</button>` : ''}
+            <button class="btn ghost" onclick="shareResult(${r.id})">📤 Поделиться</button>
+            <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
+        </div>
+    </div>`;
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+
 async function deleteHistoryRecord(id) {
     if (!await customConfirm('Удалить запись?', { danger: true, okText: '🗑 Удалить' })) return;
     const idx = DB.history.findIndex(r => r.id === id);
@@ -7045,7 +7091,6 @@ try {
 } catch(e) {}
 try { applyFontSize(); applyCompactWorkouts(); } catch(e) {}
 
-// ==== Меню тренировки (⋮) ====
 function openRunMenu() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
@@ -7097,6 +7142,7 @@ function openRunMenu() {
     };
 }
 
+// ==== Улучшенный редактор очереди тренировки ====
 function openRunQueueEditor() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
@@ -7113,6 +7159,12 @@ function openRunQueueEditor() {
                 el._skipped = (t === -1);
             }
             exCounter++;
+        }
+    });
+    // Отмечаем пройденные отдых/воду, если мы уже прошли по индексу
+    tempExercises.forEach((el, i) => {
+        if (el.kind === 'rest' && i < runState.index) {
+            el._done = true;
         }
     });
 
@@ -7147,6 +7199,7 @@ function openRunQueueEditor() {
             const isCurrent = i === currentIdx;
             const isDone = !!el._done;
             const isSkipped = !!el._skipped;
+            const isRemoved = !!el._removed; // Флаг удаления
             const isPast = i < currentIdx || isDone || isSkipped;
 
             if (el.kind === 'exercise') {
@@ -7168,18 +7221,36 @@ function openRunQueueEditor() {
             else if (isDone) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">✓</span>`;
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
-            const strike = isDone ? 'text-decoration: line-through; color: var(--muted);' : (isSkipped ? 'color: var(--muted);' : '');
+            // Стили зачеркивания для выполненных / пропущенных / удаленных
+            let strike = '';
+            if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
+            if (isRemoved) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.5; background: var(--card-3);';
+
+            // Кнопки управления
+            let actionBtn = '';
+            if (isPast) {
+                // Прошедшие заблокированы
+                actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; opacity:0.3; pointer-events:none;" aria-label="Заблокировано">✕</button>`;
+            } else if (isRemoved) {
+                // Если удалено - показываем зеленую галочку для возврата
+                actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--accent); border-color:var(--accent); background:var(--accent-soft);" onclick="event.stopPropagation(); runQueueRestore(${i})" aria-label="Восстановить">✅</button>`;
+            } else {
+                // Активные
+                actionBtn = `
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Вверх">↑</button>
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},1)" ${i === tempExercises.length - 1 ? 'disabled' : ''} aria-label="Вниз">↓</button>
+                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--danger);" onclick="event.stopPropagation(); runQueueDelete(${i})" aria-label="Удалить">✕</button>
+                `;
+            }
 
             return `<div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--card-2); border-radius:10px; border:1px solid ${isCurrent ? 'var(--accent)' : 'var(--border-soft)'}; ${strike}">
-                <div style="font-size:1.2rem; flex-shrink:0; opacity:${isPast && !isCurrent ? 0.5 : 1};">${icon}</div>
+                <div style="font-size:1.2rem; flex-shrink:0; opacity:${(isPast || isRemoved) && !isCurrent ? 0.5 : 1};">${icon}</div>
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:600; font-size:0.9rem; word-break:break-word;">${escapeHtml(name)}${statusBadge}</div>
                     <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">${sub}</div>
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
-                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},-1)" ${isPast || i === 0 ? 'disabled' : ''} aria-label="Вверх">↑</button>
-                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},1)" ${isPast || i === tempExercises.length - 1 ? 'disabled' : ''} aria-label="Вниз">↓</button>
-                    <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--danger);" onclick="event.stopPropagation(); runQueueDelete(${i})" ${isPast ? 'disabled' : ''} aria-label="Удалить">✕</button>
+                    ${actionBtn}
                 </div>
             </div>`;
         }).join('');
@@ -7193,7 +7264,7 @@ function openRunQueueEditor() {
     window.runQueueMove = function(i, d) {
         const j = i + d;
         if (j < 0 || j >= tempExercises.length) return;
-        if (i <= currentIdx || tempExercises[i]._done || tempExercises[i]._skipped) return;
+        if (i <= currentIdx || tempExercises[i]._done || tempExercises[i]._skipped || tempExercises[i]._removed) return;
         if (j <= currentIdx) return;
         [tempExercises[i], tempExercises[j]] = [tempExercises[j], tempExercises[i]];
         refresh();
@@ -7204,22 +7275,54 @@ function openRunQueueEditor() {
             showToast('Нельзя удалить выполненное или текущее');
             return;
         }
-        tempExercises.splice(i, 1);
-        if (tempExercises.length === 0) {
-            showToast('Нельзя удалить все элементы');
-            tempExercises.push({ kind: 'rest', restType: 'rest', duration: 60, notes: '' });
-        }
+        // Вместо удаления ставим флаг
+        tempExercises[i]._removed = true;
         refresh();
     };
+    window.runQueueRestore = function(i) {
+        if (i < 0 || i >= tempExercises.length) return;
+        if (tempExercises[i]._removed) {
+            tempExercises[i]._removed = false;
+            refresh();
+        }
+    };
     window.applyRunQueue = function() {
-        if (tempExercises.length === 0) { showToast('Очередь пуста'); return; }
-        const cleaned = tempExercises.map(el => {
+        // Фильтруем те, что не удалены
+        const cleaned = tempExercises.filter(el => !el._removed).map(el => {
             const c = Object.assign({}, el);
-            delete c._origIndex; delete c._done; delete c._skipped;
+            delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
             return c;
         });
+        if (cleaned.length === 0) { showToast('Нельзя оставить пустую тренировку'); return; }
         runState.workout.exercises = cleaned;
-        runState.index = Math.min(currentIdx, cleaned.length - 1);
+        
+        // Пересчитываем текущий индекс
+        // Находим элемент, который был текущим (по _origIndex)
+        const oldCurrent = tempExercises[currentIdx];
+        let newIdx = -1;
+        if (oldCurrent && !oldCurrent._removed) {
+            // Ищем его в очищенном массиве по ссылке на оригинал (через имя/тип, но проще - по индексу в исходном)
+            // Так как мы клонировали, то уникальность можно проверить по набору полей, но проще - найти по позиции
+            // Используем сохраненный _origIndex
+            const origIdx = oldCurrent._origIndex;
+            // Ищем элемент в cleaned, у которого нет _origIndex, но совпадает структура
+            // Проще: если старый текущий не удален, то его новый индекс - это количество элементов до него в tempExercises (не удаленных)
+            let count = 0;
+            for (let k = 0; k < currentIdx; k++) {
+                if (!tempExercises[k]._removed) count++;
+            }
+            newIdx = count;
+        } else {
+            // Если текущий удален, ставим индекс на первый не удаленный
+            let count = 0;
+            for (let k = 0; k <= currentIdx; k++) {
+                if (!tempExercises[k]._removed) break;
+                count++;
+            }
+            newIdx = Math.min(count, cleaned.length - 1);
+        }
+        
+        runState.index = Math.max(0, Math.min(newIdx, cleaned.length - 1));
         saveRunState();
         resumeAfterClose();
         closeTopSheet();
@@ -7266,7 +7369,6 @@ async function cancelWorkout() {
     showScreen('screen-workouts');
     showToast('❌ Тренировка отменена');
 }
-// ==== /Меню тренировки (⋮) ====
 
 window.addEventListener('load', () => {
     setTimeout(async () => {
