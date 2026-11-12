@@ -582,6 +582,15 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .activity-card-header .icon-toggle-btn { width: 32px; height: 32px; }
 .activity-card-header .icon-toggle-btn svg { width: 18px; height: 18px; }
 .activity-card-body { margin-top: 8px; }
+
+/* ==== Таблица прогресса по упражнениям ==== */
+.exercise-table-wrap { max-height: 200px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: var(--r-sm); border: 1px solid var(--border-soft); }
+.exercise-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.exercise-table th { position: sticky; top: 0; background: var(--card-2); color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-soft); }
+.exercise-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+.exercise-table tr:last-child td { border-bottom: none; }
+.exercise-table .val-cell { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.exercise-table .sets-row { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -2115,13 +2124,14 @@ function renderSnoozeDurationOptions() {
 function selectSnoozeDuration(v) { DB.settings.snoozeDuration = v; saveDB('settings'); renderSnoozeDurationOptions(); }
 
 // ==== Порядок и свёрнутость карточек Активности ====
-const ACTIVITY_CARDS_DEFAULT = ['week','heatmap','timeofday','weeks','besthour','plan','total'];
+const ACTIVITY_CARDS_DEFAULT = ['week','heatmap','timeofday','weeks','besthour','exercise-progress','plan','total'];
 const ACTIVITY_CARDS_LABELS = {
     week: '📊 Неделя',
     heatmap: '📅 Активность 30 дней',
     timeofday: '🕐 Когда вы тренируетесь',
     weeks: '📈 Работа по неделям',
     besthour: '⏰ Лучшее время',
+    'exercise-progress': '📈 Прогресс по упражнениям',
     plan: '📋 Выполнение программ (30 дней)',
     total: '🏆 Всего'
 };
@@ -2176,6 +2186,193 @@ function wrapActivityCard(key, bodyHtml) {
     </div>`;
 }
 // ==== /Порядок и свёрнутость карточек Активности ====
+
+// ==== Прогресс по упражнениям (Activity) ====
+let activityExerciseSelected = null;
+let activityExercisePeriod = 30;
+let activityExerciseMetric = 'max';
+let activityTableSort = 'date-desc';
+
+function getExerciseUniqueNames() {
+    const seen = new Set();
+    (DB.history || []).forEach(r => {
+        if (Array.isArray(r.exerciseNames)) {
+            r.exerciseNames.forEach(n => {
+                const name = (n || '').trim();
+                if (name) seen.add(name);
+            });
+        }
+    });
+    return [...seen].sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
+function getExerciseProgressData(exName, periodDays, metric) {
+    const now = Date.now();
+    const cutoff = periodDays ? now - periodDays * 24 * 60 * 60 * 1000 : 0;
+    const result = [];
+    (DB.history || []).forEach(r => {
+        let ts;
+        try { ts = new Date(r.startTime).getTime(); } catch(e) { return; }
+        if (!ts || isNaN(ts)) return;
+        if (cutoff && ts < cutoff) return;
+        const names = r.exerciseNames || [];
+        const origIdxs = getExerciseOriginalIndices(r);
+        const times = r.exerciseTimes || [];
+        const sr = r.setResults || {};
+        let exIdx = -1;
+        for (let i = 0; i < names.length; i++) {
+            if ((names[i] || '').trim() === exName) { exIdx = i; break; }
+        }
+        if (exIdx === -1) return;
+        const origIdx = origIdxs[exIdx] !== undefined ? origIdxs[exIdx] : exIdx;
+        const sets = sr[origIdx];
+        const timeVal = times[exIdx];
+        let type = 'reps';
+        let value = 0;
+        let setsArr = null;
+        if (Array.isArray(sets)) {
+            type = 'reps';
+            setsArr = sets.map(x => parseInt(x, 10) || 0);
+            if (metric === 'sum') value = setsArr.reduce((a, b) => a + b, 0);
+            else if (metric === 'first') value = setsArr[0] || 0;
+            else value = setsArr.length ? Math.max(...setsArr) : 0;
+        } else if (sets === 'skipped' || sets === undefined || sets === null) {
+            type = 'time';
+            const t = (typeof timeVal === 'number' && timeVal > 0) ? timeVal : 0;
+            value = t;
+        } else {
+            type = 'reps';
+            const n = parseInt(sets, 10) || 0;
+            setsArr = [n];
+            value = n;
+        }
+        if (type === 'time' && value <= 0) return;
+        const d = new Date(ts);
+        result.push({
+            date: d,
+            dateKey: formatDateKey(d),
+            time: formatClock(d),
+            value,
+            type,
+            sets: setsArr,
+            timeVal: timeVal
+        });
+    });
+    result.sort((a, b) => a.date - b.date);
+    return result;
+}
+
+function renderExerciseChart(records) {
+    if (!records || records.length < 2) {
+        return `<div style="text-align:center; color:var(--muted); padding:20px; font-size:0.85rem;">Недостаточно данных для графика</div>`;
+    }
+    const w = 340, h = 140, pad = 24;
+    const vals = records.map(r => r.value);
+    const maxV = Math.max(...vals);
+    const minV = Math.min(...vals);
+    const range = (maxV - minV) || 1;
+    const stepX = (w - pad * 2) / (records.length - 1);
+    const points = records.map((r, i) => {
+        const x = pad + i * stepX;
+        const y = pad + (1 - (r.value - minV) / range) * (h - pad * 2);
+        return { x, y, r };
+    });
+    const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    const gridLines = [0, 0.5, 1].map(frac => {
+        const y = pad + frac * (h - pad * 2);
+        return `<line class="grid-line" x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}"/>`;
+    }).join('');
+    const dots = points.map(p => `<circle class="dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
+    const labels = points.map((p, i) => {
+        if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return '';
+        return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(p.r.date)}</text>`;
+    }).join('');
+    return `<svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}<path class="line" d="${pathD}"/>${dots}${labels}</svg>`;
+}
+
+function renderExerciseTable(records, sortBy) {
+    if (!records || records.length === 0) {
+        return `<div style="text-align:center; color:var(--muted); padding:16px; font-size:0.85rem;">Нет записей</div>`;
+    }
+    const sorted = [...records];
+    if (sortBy === 'date-asc') sorted.sort((a, b) => a.date - b.date);
+    else if (sortBy === 'val-desc') sorted.sort((a, b) => b.value - a.value);
+    else if (sortBy === 'val-asc') sorted.sort((a, b) => a.value - b.value);
+    else sorted.sort((a, b) => b.date - a.date);
+    const rows = sorted.map(r => {
+        const unit = r.type === 'reps' ? 'повт.' : 'сек';
+        const mainVal = r.type === 'reps' ? r.value : formatTime(r.value);
+        let setsHtml = '';
+        if (Array.isArray(r.sets) && r.sets.length > 1) {
+            setsHtml = `<div class="sets-row">Подходы: ${r.sets.join(' / ')}</div>`;
+        }
+        return `<tr>
+            <td>${formatShortDate(r.date)} <span style="color:var(--muted); font-size:0.75rem;">${r.time}</span></td>
+            <td class="val-cell">${mainVal} <span style="color:var(--muted); font-size:0.75rem; font-weight:400;">${unit}</span>${setsHtml}</td>
+        </tr>`;
+    }).join('');
+    return `<div class="exercise-table-wrap"><table class="exercise-table"><thead><tr><th>Дата</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderActivityExerciseChart() {
+    const names = getExerciseUniqueNames();
+    if (names.length === 0) return '';
+    if (!activityExerciseSelected || !names.includes(activityExerciseSelected)) {
+        activityExerciseSelected = names[0];
+    }
+    const periodOpts = [
+        { v: 7, t: '7 дней' }, { v: 30, t: '30 дней' }, { v: 90, t: '90 дней' }, { v: 365, t: 'Год' }
+    ];
+    const metricOpts = [
+        { v: 'max', t: 'Максимум' }, { v: 'sum', t: 'Сумма' }, { v: 'first', t: 'Первый подход' }
+    ];
+    const sortOpts = [
+        { v: 'date-desc', t: 'Новые' }, { v: 'date-asc', t: 'Старые' },
+        { v: 'val-desc', t: 'Больше' }, { v: 'val-asc', t: 'Меньше' }
+    ];
+
+    const recordsProbe = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod, activityExerciseMetric);
+    let isTimeType = false;
+    if (recordsProbe.length > 0) {
+        isTimeType = recordsProbe.every(r => r.type === 'time');
+    } else {
+        // fallback: если записей нет — не блокируем метрику
+        isTimeType = false;
+    }
+    const metricDisabled = isTimeType;
+
+    const exSelectHtml = `<select class="select" style="margin:0;" onchange="activityExerciseSelected=this.value; renderActivity();">
+        ${names.map(n => `<option value="${escapeHtml(n)}" ${n === activityExerciseSelected ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+    </select>`;
+    const periodSelectHtml = `<select class="select" style="margin:0;" onchange="activityExercisePeriod=parseInt(this.value)||30; renderActivity();">
+        ${periodOpts.map(o => `<option value="${o.v}" ${o.v === activityExercisePeriod ? 'selected' : ''}>${o.t}</option>`).join('')}
+    </select>`;
+    const metricSelectHtml = `<select class="select" style="margin:0;" ${metricDisabled ? 'disabled' : ''} onchange="activityExerciseMetric=this.value; renderActivity();">
+        ${metricOpts.map(o => `<option value="${o.v}" ${o.v === activityExerciseMetric ? 'selected' : ''}>${o.t}</option>`).join('')}
+    </select>`;
+    const sortSelectHtml = `<select class="select" style="margin:0;" onchange="activityTableSort=this.value; renderActivity();">
+        ${sortOpts.map(o => `<option value="${o.v}" ${o.v === activityTableSort ? 'selected' : ''}>${o.t}</option>`).join('')}
+    </select>`;
+
+    const chartHtml = renderExerciseChart(recordsProbe);
+    const tableHtml = renderExerciseTable(recordsProbe, activityTableSort);
+
+    return `
+        <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+            <div style="flex:1 1 100%;">${exSelectHtml}</div>
+            <div style="flex:1 1 100px;">${periodSelectHtml}</div>
+            <div style="flex:1 1 120px;">${metricSelectHtml}</div>
+        </div>
+        ${metricDisabled ? `<div style="color:var(--muted); font-size:0.75rem; margin-bottom:8px;">Упражнение на время — метрика не применима</div>` : ''}
+        ${chartHtml}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0 6px; gap:8px;">
+            <div style="font-weight:600; font-size:0.85rem; color:var(--muted);">Таблица</div>
+            <div style="flex:0 0 auto; width:130px;">${sortSelectHtml}</div>
+        </div>
+        ${tableHtml}
+    `;
+}
+// ==== /Прогресс по упражнениям (Activity) ====
 
 let exitProtectionActive = false;
 function enableExitProtection() { if (exitProtectionActive) return; exitProtectionActive = true; try { history.pushState({ ftProtected: true, ts: Date.now() }, '', location.href); } catch(e) {} }
@@ -3283,6 +3480,7 @@ function renderActivity() {
             timeofday: timeOfDayBody,
             weeks: weeksBody,
             besthour: bestHourBody,
+            'exercise-progress': renderActivityExerciseChart(),
             plan: planBody,
             total: totalBody
         };
@@ -3290,6 +3488,7 @@ function renderActivity() {
         order.forEach(key => {
             if (key === 'besthour' && bestHour < 0) return;
             if (key === 'plan' && planStats.missedCount === 0) return;
+            if (key === 'exercise-progress' && !bodies[key]) return;
             const bodyHtml = bodies[key];
             if (!bodyHtml) return;
             cardsHtml += wrapActivityCard(key, bodyHtml);
