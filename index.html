@@ -305,7 +305,7 @@ textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
 .timer-ring-wrap { position: relative; width: 220px; height: 220px; margin: 8px auto; max-width: 80vw; max-height: 80vw; }
 .timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
 .timer-ring-bg { fill: none; stroke: var(--card-2); stroke-width: 6; }
-.timer-ring-fg { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 339.29; stroke-dashoffset: 0; transition: stroke-dashoffset 0.35s linear, stroke 0.2s; }
+.timer-ring-fg { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 339.29; stroke-dashoffset: 0; transition: stroke-dashoffset 0.35s linear; }
 .timer-ring-fg.work { stroke: var(--accent); }
 .timer-ring-fg.rest { stroke: var(--blue); }
 .timer-ring-fg.warmup { stroke: var(--primary); }
@@ -679,7 +679,6 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     <div id="workouts-list"></div>
     <button class="btn" onclick="openEditor(null, false)">+ Создать тренировку</button>
     <button class="btn ghost" onclick="openImportPicker('workout')" style="margin-top:8px;">📥 Импорт тренировки</button>
-    
 </div>
 
 <div id="screen-templates" class="screen">
@@ -1050,7 +1049,6 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
             <button class="btn ghost" onclick="exportData()">💾 Сделать бэкап (JSON)</button>
             <button class="btn ghost" onclick="exportCSV()">📥 Экспорт истории (CSV)</button>
             <button class="btn ghost" onclick="openImportPicker('data')">📥 Импорт данных</button>
-            
             <button class="btn danger" onclick="clearHistory()">🗑 Очистить историю</button>
             <button class="btn ghost" onclick="restoreBuiltins()">🔄 Восстановить шаблоны</button>
             <button class="btn ghost" onclick="resetAllSettings()" style="color:var(--warn); border-color:var(--warn);">↺ Сбросить настройки</button>
@@ -1837,8 +1835,13 @@ const HISTORY_HARD_LIMIT = 500;
 function pruneHistory(maxRecords = HISTORY_PRUNE_LIMIT) {
     if (!Array.isArray(DB.history)) return 0;
     if (DB.history.length <= maxRecords) return 0;
+    // ФИКС: фильтруем битые элементы перед сортировкой
+    const valid = DB.history.filter(r => r && r.startTime);
+    const invalidCount = DB.history.length - valid.length;
+    if (invalidCount > 0) { DB.history = valid; }
+    if (DB.history.length <= maxRecords) return invalidCount;
     const sorted = [...DB.history].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    const removed = DB.history.length - maxRecords;
+    const removed = DB.history.length - maxRecords + invalidCount;
     DB.history = sorted.slice(0, maxRecords);
     return removed;
 }
@@ -2011,7 +2014,7 @@ function validateAndMigrateDB() {
 function getTodayKey() { const d = new Date().getDay(); return ['sun','mon','tue','wed','thu','fri','sat'][d]; }
 function formatDateKey(d) { 
     try {
-        if (!(d instanceof Date) || isNaN(d.getTime())) return formatDateKey(new Date());
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '1970-01-01';
         const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const dd = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${dd}`;
     } catch(e) { return '1970-01-01'; }
 }
@@ -3146,6 +3149,7 @@ function notifOpenResume(btn) {
     if (ov) { ov.remove(); updateNotifGrabber(); }
     const saved = loadSavedRunState();
     if (!saved) return;
+    if (!['ready','work','rest','countdown','warmup'].includes(saved.phase)) { showToast('Некорректное состояние'); clearSavedRunState(); return; }
     const w = DB.workouts.find(x => x.id === saved.workoutId);
     if (!w) { showToast('Тренировка удалена'); clearSavedRunState(); return; }
     restoreRunState(saved);
@@ -3165,6 +3169,8 @@ function snoozeAllNotifications(btn) {
     const hours = DB.settings.snoozeDuration || 2;
     const until = Date.now() + hours * 60 * 60 * 1000;
     list.forEach(n => { DB.settings.dismissedUntil[n.key] = until; });
+    // ФИКС: сбрасываем lastNotifAutoShow, чтобы шторка снова показалась в этот день после snooze
+    DB.settings.lastNotifAutoShow = '';
     saveDB('settings');
     const ov = btn.closest('.notif-side-overlay');
     if (ov) { ov.remove(); updateNotifGrabber(); }
@@ -3643,7 +3649,7 @@ function renderHomeTodayBanner() {
                     <div class="title">${escapeHtml(currentWorkout.name)}</div>
                     ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(1)" aria-label="Следующее упражнение">›</button>` : `<div class="home-nav-spacer"></div>`}
                 </div>
-                <button class="btn accent" onclick="startWorkout(${currentWorkout.id}, ${current.isDeload || false})" style="margin:0;">▶ Начать</button>
+                <button class="btn accent" onclick="startWorkout(${currentWorkout.id}, ${!!current.isDeload})" style="margin:0;">▶ Начать</button>
             </div>
         </div>`;
     } catch(e) { banner.style.display = 'none'; }
@@ -3708,7 +3714,7 @@ function buildLast30DaysGrid() {
     return html;
 }
 
-// ФИКС: Стрик-баннер теперь кликабельный (открывает Активность), а стрелочка сворачивает.
+// ФИКС: Стрик-баннер кликабельный (открывает Активность), а стрелочка сворачивает.
 function renderStreakBanner() {
     const el = document.getElementById('streak-banner-home');
     if (!el) return;
@@ -4419,7 +4425,7 @@ function showCalendarDay(year, month, day) {
         if (entries.length === 0) { showToast(`${title} · нет планов`); return; }
         const ov = document.createElement('div');
         ov.className = 'notif-side-overlay';
-        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; return `<div class="notif-item" style="cursor:pointer;" onclick="closeTopSheet(); startWorkout(${e.wid}, ${e.isDeload || false})"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; return `<div class="notif-item" style="cursor:pointer;" onclick="closeTopSheet(); startWorkout(${e.wid}, ${!!e.isDeload})"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
         document.body.appendChild(ov);
         setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
         ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -4572,7 +4578,7 @@ function toggleDayDeload(weekIdx, dayKey, checked) {
     w.deloadDays[dayKey] = !!checked;
 }
 function addDayWorkout(weekIdx, dayKey, workoutId) { const w = editorProgram.weeks[weekIdx]; if (!w) return; if (!w.days[dayKey]) w.days[dayKey] = []; w.days[dayKey].push(workoutId); refreshDayEditor(weekIdx, dayKey); }
-function removeDayWorkout(weekIdx, dayKey, idx) { const w = editorProgram.weeks[weekIdx]; if (!w || !w.days[dayKey]) return; w.days[dayKey].splice(idx, 1); refreshDayEditor(weekIdx, dayKey); }
+function removeDayWorkout(weekIdx, dayKey, idx) { const w = editorProgram.weeks[weekIdx]; if (!w || !w.days[dayKey]) return; w.days[dayKey].splice(idx, 1); if (w.days[dayKey].length === 0 && w.deloadDays && w.deloadDays[dayKey]) { w.deloadDays[dayKey] = false; } refreshDayEditor(weekIdx, dayKey); }
 function moveDayWorkout(weekIdx, dayKey, idx, dir) { const w = editorProgram.weeks[weekIdx]; if (!w || !w.days[dayKey]) return; const arr = w.days[dayKey]; const j = idx + dir; if (j < 0 || j >= arr.length) return; [arr[idx], arr[j]] = [arr[j], arr[idx]]; refreshDayEditor(weekIdx, dayKey); }
 function closeDayEditor() { const o = document.getElementById('day-editor-overlay'); if (o) o.remove(); renderProgramWeeksList(); }
 function saveProgram() {
@@ -4795,6 +4801,7 @@ function openEditor(id, isTemplate) {
         const src = isTemplate ? DB.templates : DB.workouts;
         const w = src.find(x => x.id === id);
         if (!w) return;
+        if (!Array.isArray(w.exercises)) { showToast('⚠️ Тренировка повреждена'); return; }
         editorExercises = JSON.parse(JSON.stringify(w.exercises));
         editorExercises.forEach(ex => {
             if (ex.kind === 'rest' && ex.duration !== null && ex.duration !== undefined && !REST_PRESETS.some(p => p.v === ex.duration)) ex.customDuration = true;
@@ -5053,7 +5060,7 @@ function showPreview(id) {
     document.getElementById('preview-actions').innerHTML = `<button class="btn accent" onclick="startFromPreview()">▶ Начать</button><button class="btn ghost" onclick="saveAsTemplate(${id})" style="margin-top:8px;">💾 Сохранить как шаблон</button>`;
     showScreen('screen-preview');
 }
-function startFromPreview() { if (previewWorkoutId) startWorkout(previewWorkoutId); }
+function startFromPreview() { if (previewWorkoutId) startWorkout(previewWorkoutId, false); }
 function saveAsTemplate(id) {
     const w = DB.workouts.find(x => x.id === id); if (!w) return;
     const copy = JSON.parse(JSON.stringify(w));
@@ -5127,6 +5134,7 @@ let startWorkoutInProgress = false;
 async function startWorkout(id, isDeload) {
     if (startWorkoutInProgress) return;
     if (runState && runState.phase !== 'finish') { showToast('⚠️ Тренировка уже запущена'); return; }
+    if (runState && runState.phase === 'finish') { runState = null; }
     startWorkoutInProgress = true;
     try {
         // ФИКС: возвращаем ⋮ и центрирование заголовка при старте новой тренировки
@@ -5458,6 +5466,8 @@ function beginRestPhase(restEl) {
     }
     speakAtElementStart(speech);
     saveRunState(); renderRun();
+    // ФИКС: принудительно сохраняем состояние в "водном" баннере
+    if (runState.restBannerMode) saveRunState();
 }
 function toggleWorkPause() {
     if (runState.workPaused) { unlockAudio(); resumeTimer('work'); announceResume(); if (runState.timerFinished && getEffectiveSetting('continuousBeep')) startExerciseAlarm(); }
@@ -5697,7 +5707,9 @@ function _updateWorkTimerRing(el, t) {
     if (t) t.innerText = formatTime(remaining);
     if (runState._menuOpen) {
         if (t) t.style.color = 'var(--warn)';
-        setRingProgress('ring-work', 1, 'paused');
+        // ФИКС: сохраняем реальный процент, а не 100%
+        const pct = dur > 0 ? remaining / dur : 0;
+        setRingProgress('ring-work', pct, 'paused');
     } else if (runState.timerFinished) {
         setRingProgress('ring-work', 1, 'danger');
         if (t) t.style.color = 'var(--danger)';
@@ -5723,7 +5735,7 @@ function _updateSetTimeRing(el, t) {
     if (t) t.innerText = formatTime(remaining);
     const pct = dur > 0 ? remaining / dur : 0;
     const ringCls = (runState.workPaused || runState._menuOpen) ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
-    if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
+    if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', pct, 'paused'); }
     else { if (t) t.style.color = ''; setRingProgress('ring-work', pct, ringCls); }
     if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !finishExerciseInProgress) {
         runState.setFinishing = true;
@@ -5736,7 +5748,8 @@ function _updateRestRing() {
     if (el) { if (runState.restFinished) el.innerText = formatTime(getOvertime('rest')); else el.innerText = formatTime(rem); }
     if (runState._menuOpen) {
         if (el) el.style.color = 'var(--warn)';
-        setRingProgress('ring-rest', 1, 'paused');
+        const dur = runState.restDuration || 1;
+        setRingProgress('ring-rest', rem / dur, 'paused');
     } else {
         if (el) el.style.color = '';
         if (runState.restFinished) {
@@ -5809,7 +5822,7 @@ function updateTimersUI() {
             const rem = getRemainingTime('warmup');
             if (el) el.innerText = formatTime(rem);
             const dur = runState.warmupDuration || 1;
-            if (runState._menuOpen) { if (el) el.style.color = 'var(--warn)'; setRingProgress('ring-warmup', 1, 'paused'); }
+            if (runState._menuOpen) { if (el) el.style.color = 'var(--warn)'; setRingProgress('ring-warmup', rem/dur, 'paused'); }
             else { if (el) el.style.color = ''; setRingProgress('ring-warmup', rem / dur, runState.warmupPaused ? 'paused' : 'warmup'); }
             if (rem > 0 && rem <= 3 && !runState.warmupBeepPlayed && !runState.warmupPaused && !runState._menuOpen) { runState.warmupBeepPlayed = true; announceFinalCount(rem); }
             if (rem === 0 && !runState.warmupFinished && !runState._menuOpen) onWarmupFinished();
@@ -5851,6 +5864,7 @@ function elapsedMinutesText(n) { if (n === 1) return 'минута'; return n + 
 function remainingMinutesText(n) { if (n === 1) return 'одна минута'; return n + ' ' + pluralMinutes(n); }
 
 function renderRun() {
+    if (!runState) return;
     const { workout, index, phase } = runState;
     const elements = workout.exercises;
     if (index >= elements.length) { showFinishScreen(); return; }
@@ -5936,7 +5950,8 @@ function renderRun() {
             pauseBtn.style.display = 'block'; pauseBtn.innerText = runState.warmupPaused ? '▶ Продолжить' : '⏸ Пауза';
             finishEarlyBtn.style.display = 'none'; skipBtn.style.display = 'none';
             confirmBtn.style.display = 'block'; confirmBtn.innerText = '✅ Готов';
-            setRingProgress('ring-warmup', 1, runState.warmupPaused ? 'paused' : 'warmup');
+            // ФИКС: для свободной разминки кольцо показывает "бегущую" анимацию
+            setRingProgress('ring-warmup', 0.5, runState.warmupPaused ? 'paused' : 'warmup');
         } else if (runState.warmupFinished) {
             phaseLabel.innerText = '✅ Разминка завершена';
             currentExEl.style.color = 'var(--accent)';
@@ -6132,6 +6147,7 @@ function fireConfetti() {
     } catch(e) {}
 }
 function showFinishScreen() {
+    if (!runState) return;
     if (runState) runState.phase = 'finish';
     stopTickInterval();
     if (runState && runState.countdownInterval) clearInterval(runState.countdownInterval);
@@ -6263,7 +6279,11 @@ function saveWorkoutNote(recordId) {
         if (toggle) { toggle.style.display = 'block'; toggle.innerText = '📝 Редактировать заметку к тренировке'; }
     }
 }
-function repeatLastWorkout(workoutId) { runState = null; startWorkout(workoutId, false); }
+function repeatLastWorkout(workoutId) {
+    const w = DB.workouts.find(x => x.id === workoutId);
+    if (!w) { showToast('⚠️ Тренировка удалена. Сохраните как шаблон из завершённой.'); return; }
+    runState = null; startWorkout(workoutId, false);
+}
 
 function renderHistory() { renderHistoryList(); renderHistoryStats(); renderHistoryRecords(); renderHistoryPrograms(); }
 function switchHistoryTab(tab, el) {
