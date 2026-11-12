@@ -10,10 +10,8 @@
 <title>Fit Trainer Pro v1.2</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%230a0a10'/%3E%3Ctext x='50' y='75' font-size='75' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 
-<!-- Иконка для установки на телефон/компьютер (PWA) -->
 <link rel="manifest" href='data:application/manifest+json,{"name":"Fit Trainer","short_name":"FitTrainer","start_url":".","display":"standalone","background_color":"%230a0a10","theme_color":"%230a0a10","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2750%27 fill=%27%230a0a10%27/%3E%3Ctext x=%2796%27 y=%27140%27 font-size=%27140%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27120%27 fill=%27%230a0a10%27/%3E%3Ctext x=%27256%27 y=%27380%27 font-size=%27380%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
 
-<!-- Иконка для iOS (iPhone/iPad) -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='45' fill='%230a0a10'/%3E%3Ctext x='90' y='135' font-size='135' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 <style>
 :root {
@@ -574,6 +572,16 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .run-menu-item:active { background:var(--card-3); }
 .run-menu-item .r-icon { font-size:1.4rem; flex-shrink:0; }
 .run-menu-item.danger { color:var(--danger); }
+
+/* ==== Сворачиваемые карточки активности ==== */
+.activity-card { transition: background 0.15s; }
+.activity-card.dragging { opacity: 0.95; z-index: 9999; box-shadow: var(--shadow-lg); background: var(--card-2); border: 1px solid var(--primary); pointer-events: none; position: fixed !important; width: calc(100% - 32px) !important; left: 16px !important; top: 0 !important; margin: 0 !important; }
+.activity-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.activity-card-header:active { opacity: 0.75; }
+.activity-card-title { font-weight: 700; flex: 1; min-width: 0; word-break: break-word; }
+.activity-card-header .icon-toggle-btn { width: 32px; height: 32px; }
+.activity-card-header .icon-toggle-btn svg { width: 18px; height: 18px; }
+.activity-card-body { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -936,7 +944,6 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     </div>
 </div>
 
-<!-- Итоги недели остаются как были -->
 <div class="checkbox-row"><input type="checkbox" id="set-weekly-digest"><label for="set-weekly-digest">📊 Итоги недели<span class="hint">По воскресеньям вечером</span></label></div>
 
 <div class="settings-row-with-sub">
@@ -1902,6 +1909,12 @@ function validateAndMigrateDB() {
     });
 
     if (migrated) { saveDB('workouts'); saveDB('templates'); saveDB('programs'); }
+
+    // Валидация порядка и свёрнутости карточек активности
+    if (!DB.settings.accordions || typeof DB.settings.accordions !== 'object') DB.settings.accordions = {};
+    if (!Array.isArray(DB.settings.accordions.activityOrder)) DB.settings.accordions.activityOrder = [...ACTIVITY_CARDS_DEFAULT];
+    if (!DB.settings.accordions.activityCollapsed || typeof DB.settings.accordions.activityCollapsed !== 'object') DB.settings.accordions.activityCollapsed = {};
+    ensureActivityOrderSanity();
 }
 
 function getTodayKey() { const d = new Date().getDay(); return ['sun','mon','tue','wed','thu','fri','sat'][d]; }
@@ -2100,6 +2113,69 @@ function renderSnoozeDurationOptions() {
     c.innerHTML = SNOOZE_OPTIONS.map(o => `<div class="sound-option ${cur === o.v ? 'selected' : ''}" onclick="selectSnoozeDuration(${o.v})"><div class="radio"></div><div class="sound-info"><div class="sound-name">${o.t}</div></div></div>`).join('');
 }
 function selectSnoozeDuration(v) { DB.settings.snoozeDuration = v; saveDB('settings'); renderSnoozeDurationOptions(); }
+
+// ==== Порядок и свёрнутость карточек Активности ====
+const ACTIVITY_CARDS_DEFAULT = ['week','heatmap','timeofday','weeks','besthour','plan','total'];
+const ACTIVITY_CARDS_LABELS = {
+    week: '📊 Неделя',
+    heatmap: '📅 Активность 30 дней',
+    timeofday: '🕐 Когда вы тренируетесь',
+    weeks: '📈 Работа по неделям',
+    besthour: '⏰ Лучшее время',
+    plan: '📋 Выполнение программ (30 дней)',
+    total: '🏆 Всего'
+};
+function getActivityOrder() {
+    if (!DB.settings.accordions) DB.settings.accordions = {};
+    if (!Array.isArray(DB.settings.accordions.activityOrder)) DB.settings.accordions.activityOrder = [...ACTIVITY_CARDS_DEFAULT];
+    return DB.settings.accordions.activityOrder;
+}
+function getActivityCollapsed() {
+    if (!DB.settings.accordions) DB.settings.accordions = {};
+    if (!DB.settings.accordions.activityCollapsed || typeof DB.settings.accordions.activityCollapsed !== 'object') DB.settings.accordions.activityCollapsed = {};
+    return DB.settings.accordions.activityCollapsed;
+}
+function ensureActivityOrderSanity() {
+    const order = getActivityOrder().filter(k => ACTIVITY_CARDS_DEFAULT.includes(k));
+    const missing = ACTIVITY_CARDS_DEFAULT.filter(k => !order.includes(k));
+    if (missing.length) {
+        DB.settings.accordions.activityOrder = [...order, ...missing];
+        Storage.set('ft_settings', DB.settings);
+    }
+}
+function toggleActivityCard(key) {
+    const c = getActivityCollapsed();
+    c[key] = !c[key];
+    Storage.set('ft_settings', DB.settings);
+    const el = document.querySelector(`.activity-card[data-card-key="${key}"]`);
+    if (!el) { renderActivity(); return; }
+    const collapsed = !!c[key];
+    el.classList.toggle('collapsed', collapsed);
+    const body = el.querySelector('.activity-card-body');
+    if (body) body.style.display = collapsed ? 'none' : '';
+    const btn = el.querySelector('.activity-card-header .icon-toggle-btn');
+    if (btn) {
+        btn.innerHTML = collapsed
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+        btn.setAttribute('aria-label', collapsed ? 'Развернуть' : 'Свернуть');
+    }
+}
+function wrapActivityCard(key, bodyHtml) {
+    const collapsed = !!getActivityCollapsed()[key];
+    const title = ACTIVITY_CARDS_LABELS[key] || '';
+    const icon = collapsed
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+    return `<div class="card activity-card${collapsed ? ' collapsed' : ''}" data-card-key="${key}">
+        <div class="activity-card-header" onclick="toggleActivityCard('${key}')">
+            <div class="activity-card-title">${title}</div>
+            <button class="icon-toggle-btn" aria-label="${collapsed ? 'Развернуть' : 'Свернуть'}">${icon}</button>
+        </div>
+        <div class="activity-card-body" style="${collapsed ? 'display:none;' : ''}">${bodyHtml}</div>
+    </div>`;
+}
+// ==== /Порядок и свёрнутость карточек Активности ====
 
 let exitProtectionActive = false;
 function enableExitProtection() { if (exitProtectionActive) return; exitProtectionActive = true; try { history.pushState({ ftProtected: true, ts: Date.now() }, '', location.href); } catch(e) {} }
@@ -2951,6 +3027,18 @@ function saveNewOrder() {
     const container = document.querySelector(dragContext.containerSelector);
     if (!container) return;
     const sel = dragContext.itemSelector, dbKey = dragContext.dbKey;
+
+    // Спецслучай: карточки активности
+    if (dbKey === 'activityOrder') {
+        const els = Array.from(container.querySelectorAll(sel));
+        const keys = els.map(el => el.dataset.cardKey).filter(Boolean);
+        if (keys.length === 0) return;
+        DB.settings.accordions = DB.settings.accordions || {};
+        DB.settings.accordions.activityOrder = keys;
+        Storage.set('ft_settings', DB.settings);
+        return;
+    }
+
     const els = Array.from(container.querySelectorAll(sel));
     const ids = els.map(el => parseInt(el.dataset.id)).filter(n => !isNaN(n));
     const db = DB[dbKey]; if (!Array.isArray(db)) return;
@@ -3160,47 +3248,73 @@ function renderActivity() {
     const c = document.getElementById('activity-content');
     if (!c) return;
     try {
+        // Верхняя карточка со стриком — всегда сверху, не сворачивается и не перетаскивается
         const dates = getTrainingDates();
         const streak = calculateStreak(dates), record = calculateRecordStreak(dates);
         const totalTime = DB.history.reduce((s, r) => s + (r.totalDuration || 0), 0);
         const planStats = computePlanStats(30);
         const bestHour = getBestHours();
-        let planCardHtml = '';
-        if (planStats.missedCount > 0) {
-            const missedList = planStats.missedDays.map(d => `<div style="padding:5px 0; font-size:0.85rem;"><span style="color:var(--muted);">• ${escapeHtml(d.dateStr)}</span> · <span style="color:var(--danger);">${escapeHtml((d.names || []).join(', '))}</span></div>`).join('');
-            planCardHtml = `<div class="card"><div style="font-weight:700; margin-bottom:10px;">📋 Выполнение программ (30 дней)</div><div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;"><div class="history-summary-item"><div class="val" style="color:var(--accent);">${planStats.doneCount}</div><div class="lbl">✅ выполнено</div></div><div class="history-summary-item"><div class="val" style="color:var(--danger);">${planStats.missedCount}</div><div class="lbl">❌ пропущено</div></div>${planStats.total > 0 ? `<div class="history-summary-item"><div class="val">${planStats.pct}%</div><div class="lbl">процент</div></div>` : ''}</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft);"><div style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Пропущено</div>${missedList}</div></div>`;
-        }
-        let bestHourHtml = '';
+
+        // Тело каждой карточки
+        const weekGraphBody = `<div class="week-graph">${buildWeekGraph()}</div><div style="color:var(--muted); font-size:0.75rem; text-align:center; margin-top:8px;">минут работы по дням</div>`;
+        const heatmapBody = `<div class="heatmap-grid">${buildHeatmap30()}</div><div class="heatmap-legend"><span>меньше</span><div class="heatmap-legend-box" style="background:var(--card-2);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.25);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.5);"></div><div class="heatmap-legend-box" style="background:var(--primary);"></div><span>больше</span></div>`;
+        const timeOfDayBody = buildTimeOfDayHeatmap();
+        const weeksBody = buildWeekDurationsChart();
+
+        let bestHourBody = '';
         if (bestHour >= 0) {
             const period = bestHour < 6 ? 'ночь' : bestHour < 12 ? 'утро' : bestHour < 18 ? 'день' : 'вечер';
-            bestHourHtml = `<div class="card"><div style="font-weight:700; margin-bottom:4px;">⏰ Лучшее время</div><div style="color:var(--muted); font-size:0.85rem;">Вы продуктивнее всего в ${period} около ${String(bestHour).padStart(2,'0')}:00</div></div>`;
+            bestHourBody = `<div style="color:var(--muted); font-size:0.85rem;">Вы продуктивнее всего в ${period} около ${String(bestHour).padStart(2,'0')}:00</div>`;
         }
-        const weekGraphHtml = buildWeekGraph();
-        const heatmapHtml = buildHeatmap30();
-        const timeOfDayHtml = buildTimeOfDayHeatmap();
-        const durationsHtml = buildWeekDurationsChart();
-        c.innerHTML = `
-            <div class="card" style="text-align:center; border:1px solid var(--fire);">
-                <div style="font-size:3rem;">🔥</div>
-                <div style="font-size:2rem; font-weight:800; margin:8px 0 4px; color:var(--fire);">${streak} ${pluralDays(streak)}</div>
-                <div style="color:var(--muted); font-size:0.9rem;">подряд · рекорд ${record}</div>
-            </div>
-            <div class="card"><div style="font-weight:700; margin-bottom:4px;">📊 Неделя</div><div class="week-graph">${weekGraphHtml}</div><div style="color:var(--muted); font-size:0.75rem; text-align:center; margin-top:8px;">минут работы по дням</div></div>
-            <div class="card"><div style="font-weight:700; margin-bottom:4px;">📅 Активность 30 дней</div><div class="heatmap-grid">${heatmapHtml}</div><div class="heatmap-legend"><span>меньше</span><div class="heatmap-legend-box" style="background:var(--card-2);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.25);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.5);"></div><div class="heatmap-legend-box" style="background:var(--primary);"></div><span>больше</span></div></div>
-            <div class="card"><div style="font-weight:700; margin-bottom:4px;">🕐 Когда вы тренируетесь</div>${timeOfDayHtml}</div>
-            <div class="card"><div style="font-weight:700; margin-bottom:4px;">📈 Работа по неделям</div>${durationsHtml}</div>
-            ${bestHourHtml}
-            ${planCardHtml}
-            <div class="card">
-                <div class="stat-row"><div class="stat-label">🏆 Всего тренировок</div><div class="stat-value highlight">${DB.history.length}</div></div>
-                <div class="stat-row"><div class="stat-label">⏱ Общее время</div><div class="stat-value">${formatTime(Math.floor(totalTime))}</div></div>
-            </div>`;
+
+        let planBody = '';
+        if (planStats.missedCount > 0) {
+            const missedList = planStats.missedDays.map(d => `<div style="padding:5px 0; font-size:0.85rem;"><span style="color:var(--muted);">• ${escapeHtml(d.dateStr)}</span> · <span style="color:var(--danger);">${escapeHtml((d.names || []).join(', '))}</span></div>`).join('');
+            planBody = `<div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;"><div class="history-summary-item"><div class="val" style="color:var(--accent);">${planStats.doneCount}</div><div class="lbl">✅ выполнено</div></div><div class="history-summary-item"><div class="val" style="color:var(--danger);">${planStats.missedCount}</div><div class="lbl">❌ пропущено</div></div>${planStats.total > 0 ? `<div class="history-summary-item"><div class="val">${planStats.pct}%</div><div class="lbl">процент</div></div>` : ''}</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft);"><div style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Пропущено</div>${missedList}</div>`;
+        }
+
+        const totalBody = `<div class="stat-row"><div class="stat-label">🏆 Всего тренировок</div><div class="stat-value highlight">${DB.history.length}</div></div><div class="stat-row"><div class="stat-label">⏱ Общее время</div><div class="stat-value">${formatTime(Math.floor(totalTime))}</div></div>`;
+
+        // Собираем карточки по сохранённому порядку
+        const order = getActivityOrder();
+        const bodies = {
+            week: weekGraphBody,
+            heatmap: heatmapBody,
+            timeofday: timeOfDayBody,
+            weeks: weeksBody,
+            besthour: bestHourBody,
+            plan: planBody,
+            total: totalBody
+        };
+        let cardsHtml = '';
+        order.forEach(key => {
+            if (key === 'besthour' && bestHour < 0) return;
+            if (key === 'plan' && planStats.missedCount === 0) return;
+            const bodyHtml = bodies[key];
+            if (!bodyHtml) return;
+            cardsHtml += wrapActivityCard(key, bodyHtml);
+        });
+
+        // Верхняя карточка со стриком
+        c.innerHTML = `<div class="card" style="text-align:center; border:1px solid var(--fire);">
+            <div style="font-size:3rem;">🔥</div>
+            <div style="font-size:2rem; font-weight:800; margin:8px 0 4px; color:var(--fire);">${streak} ${pluralDays(streak)}</div>
+            <div style="color:var(--muted); font-size:0.9rem;">подряд · рекорд ${record}</div>
+        </div>` + cardsHtml;
+
+        // Drag-and-drop для карточек активности (long-press, как в шаблонах)
+        c.querySelectorAll('.activity-card').forEach(el => {
+            initDragAndDrop(el, {
+                containerSelector: '#activity-content',
+                itemSelector: '.activity-card',
+                dbKey: 'activityOrder'
+            });
+        });
     } catch(e) {
         console.error('[renderActivity error]', e);
         c.innerHTML = '<div class="empty-state"><span class="icon">⚠️</span><div class="title">Ошибка загрузки</div>' + escapeHtml(String(e.message || e)) + '</div>';
     }
 }
-
 function showDayActivityDetail(key) {
     const date = parseDateKey(key);
     const records = DB.history.filter(r => formatDateKey(new Date(r.startTime)) === key);
