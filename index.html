@@ -450,10 +450,14 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .week-day-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; cursor: pointer; }
 .week-day-row.today { border: 1px solid var(--accent); }
 .week-day-row.today .day-name { color: var(--accent); font-weight: 700; }
+.week-day-row.deload-day { border-left: 3px solid var(--warn); }
 .week-day-row .day-name { color: var(--muted); flex-shrink: 0; width: 32px; }
 .week-day-row .day-workouts { flex: 1; text-align: right; word-break: break-word; padding-left: 8px; }
 .week-day-row .day-count { background: var(--primary); color: #0a0a10; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; flex-shrink: 0; }
+.week-day-row .day-deload-badge { background: var(--warn); color: #0a0a10; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; margin-left: 6px; flex-shrink: 0; }
 .week-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.deload-day-toggle { display: flex; align-items: center; gap: 8px; background: var(--card-2); border-radius: 10px; padding: 8px 10px; margin-top: 6px; font-size: 0.82rem; }
+.deload-day-toggle input { accent-color: var(--warn); width: 18px; height: 18px; }
 .prog-calendar { background: var(--card); border-radius: var(--r-md); padding: 12px; border: 1px solid var(--border-soft); margin-bottom: 12px; }
 .prog-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .prog-calendar-title { font-weight: 700; font-size: 1.05rem; }
@@ -465,10 +469,12 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .prog-calendar-day.today { border-color: var(--accent); font-weight: 700; }
 .prog-calendar-day.has-workouts { background: var(--primary-soft); }
 .prog-calendar-day.has-done { background: var(--accent-soft); border-color: var(--accent); }
+.prog-calendar-day.has-deload { background: var(--warn-soft); border-color: var(--warn); }
 .prog-calendar-day .day-num { font-weight: 600; line-height: 1; }
 .prog-calendar-day .day-dots { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .prog-calendar-day .day-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); }
 .prog-calendar-day .day-dot.done { background: var(--accent); }
+.prog-calendar-day .day-dot.deload { background: var(--warn); }
 .streak-banner { background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border: 1px solid var(--primary); border-radius: var(--r-md); padding: 16px; margin: 10px 0 16px; cursor: pointer; box-shadow: var(--shadow-sm); }
 .streak-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .streak-banner-title { font-size: 1.1rem; font-weight: 700; }
@@ -512,9 +518,11 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .durations-bar-fill.current-week { background: linear-gradient(180deg, var(--warn), var(--fire)); }
 .durations-bar-fill.current-week.below-avg { background: linear-gradient(180deg, var(--warn), var(--warn)); opacity: 0.85; }
 .durations-bar-fill.empty { background: var(--card-2); }
+.durations-bar-fill.no-plan { background: repeating-linear-gradient(45deg, var(--card-2), var(--card-2) 4px, var(--card-3) 4px, var(--card-3) 8px); opacity: 0.6; }
 .durations-bar-label { font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
 .durations-bar-value { font-size: 0.62rem; color: var(--accent); font-weight: 700; min-height: 0.9em; line-height: 1; }
 .durations-bar.current-week .durations-bar-label { color: var(--warn); font-weight: 700; }
+.durations-bar.no-plan .durations-bar-value { color: var(--muted); }
 .durations-avg-line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted-2); pointer-events: none; z-index: 2; }
 .durations-avg-label { position: absolute; right: 0; top: -14px; font-size: 0.62rem; color: var(--muted); background: var(--card); padding: 0 4px; border-radius: 4px; }
 .week-metric-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -530,8 +538,10 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .weight-chart-svg { width: 100%; height: auto; display: block; }
 .weight-chart-svg .grid-line { stroke: var(--border-soft); stroke-width: 0.5; }
 .weight-chart-svg .line { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.weight-chart-svg .trend-line { fill: none; stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linecap: round; }
 .weight-chart-svg .area { fill: var(--primary); opacity: 0.15; }
 .weight-chart-svg .dot { fill: var(--primary); stroke: var(--card); stroke-width: 2; }
+.weight-chart-svg .dot.record { fill: var(--warn); stroke: var(--card); stroke-width: 2; }
 .weight-chart-svg .label { fill: var(--muted); font-size: 9px; font-family: inherit; }
 .measure-item { background: var(--card); border-radius: var(--r-sm); padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-soft); }
 .measure-item-info { flex: 1; min-width: 0; }
@@ -1216,6 +1226,7 @@ async function importDataFromJson(text) {
         saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
         validateAndMigrateDB();
         applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
+        invalidateActivityCache();
         showToast('Импорт успешен');
         showScreen('screen-home');
     } catch(err) { showToast('Ошибка: ' + err.message); }
@@ -1454,6 +1465,15 @@ if (!Array.isArray(DB.settings.hiddenMenuItems)) DB.settings.hiddenMenuItems = [
 DB.settings.hiddenMenuItems = DB.settings.hiddenMenuItems.filter(k => HIDEABLE_MENU_KEYS.includes(k));
 if (!Array.isArray(DB.settings.hiddenBottomNavItems)) DB.settings.hiddenBottomNavItems = [];
 DB.settings.hiddenBottomNavItems = DB.settings.hiddenBottomNavItems.filter(k => HIDEABLE_MENU_KEYS.includes(k));
+
+// ==== Кэш агрегатов Активности ====
+const activityCache = { key: null, value: null };
+function invalidateActivityCache() { activityCache.key = null; activityCache.value = null; }
+function getActivityCacheKey() {
+    const h = Array.isArray(DB.history) ? DB.history : [];
+    const lastId = h.length ? (h[h.length - 1].id || 0) : 0;
+    return `${h.length}|${lastId}|${DB.settings.weekMetric}|${DB.settings.weekRange}`;
+}
 
 function isVoiceMode() { return DB.settings.soundMode === 'voice'; }
 function isBeepMode() { return DB.settings.soundMode !== 'voice'; }
@@ -1816,18 +1836,18 @@ function saveDBWithQuotaRecovery(key) {
     const storageKey = map[key];
     if (!storageKey) return;
     const ok = Storage.set(storageKey, DB[key]);
-    if (ok) return;
+    if (ok) { if (key === 'history') invalidateActivityCache(); return; }
     const removed = pruneHistory(200);
     if (removed > 0) {
         Storage.set('ft_history', DB.history);
         const ok2 = Storage.set(storageKey, DB[key]);
-        if (ok2) { showToast(`💾 Мало места. Удалено ${removed} старых записей.`, 4000); return; }
+        if (ok2) { if (key === 'history') invalidateActivityCache(); showToast(`💾 Мало места. Удалено ${removed} старых записей.`, 4000); return; }
     }
     const removed2 = pruneHistory(50);
     if (removed2 > 0) {
         Storage.set('ft_history', DB.history);
         const ok3 = Storage.set(storageKey, DB[key]);
-        if (ok3) { showToast(`💾 Мало места. Удалено ${removed + removed2} старых записей.`, 4000); return; }
+        if (ok3) { if (key === 'history') invalidateActivityCache(); showToast(`💾 Мало места. Удалено ${removed + removed2} старых записей.`, 4000); return; }
     }
     showToast('⚠️ Не удалось сохранить. Освободите место в браузере.', 5000);
 }
@@ -1931,6 +1951,9 @@ function validateAndMigrateDB() {
                 if (!w.startDate || typeof w.startDate !== 'string' || !w.startDate.match(/^\d{4}-\d{2}-\d{2}$/)) { w.startDate = formatDateKey(startOfWeekMonday(new Date())); migrated = true; }
                 if (!w.days || typeof w.days !== 'object') { w.days = { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }; migrated = true; }
                 else { DAY_KEYS.forEach(k => { if (!Array.isArray(w.days[k])) { w.days[k] = w.days[k] ? [w.days[k]] : []; migrated = true; } }); }
+                // Миграция deloadDays
+                if (!w.deloadDays || typeof w.deloadDays !== 'object') { w.deloadDays = {}; migrated = true; }
+                DAY_KEYS.forEach(k => { if (typeof w.deloadDays[k] !== 'boolean') { w.deloadDays[k] = false; migrated = true; } });
             });
         }
     });
@@ -1942,6 +1965,39 @@ function validateAndMigrateDB() {
     if (!Array.isArray(DB.settings.accordions.activityOrder)) DB.settings.accordions.activityOrder = [...ACTIVITY_CARDS_DEFAULT];
     if (!DB.settings.accordions.activityCollapsed || typeof DB.settings.accordions.activityCollapsed !== 'object') DB.settings.accordions.activityCollapsed = {};
     ensureActivityOrderSanity();
+
+    // Backfill exerciseNames для старых записей (однократно)
+    const MIGRATION_KEY = 'ft_backfill_exnames_v1';
+    try {
+        if (!localStorage.getItem(MIGRATION_KEY)) {
+            let fixed = 0, skipped = 0;
+            (DB.history || []).forEach(r => {
+                if (Array.isArray(r.exerciseNames) && r.exerciseNames.length > 0) return;
+                const w = r.workoutId ? DB.workouts.find(x => x.id === r.workoutId) : null;
+                if (!w || !Array.isArray(w.exercises)) { skipped++; return; }
+                const exerciseEls = w.exercises.filter(e => e && e.kind === 'exercise');
+                if (exerciseEls.length === 0) { skipped++; return; }
+                let names = [];
+                if (Array.isArray(r.exerciseOriginalIndices) && r.exerciseOriginalIndices.length) {
+                    r.exerciseOriginalIndices.forEach(i => {
+                        const el = w.exercises[i];
+                        names.push(el && el.kind === 'exercise' ? (el.name || '') : '');
+                    });
+                    if (names.filter(Boolean).length === 0) names = exerciseEls.map(e => e.name || '');
+                } else {
+                    names = exerciseEls.map(e => e.name || '');
+                }
+                if (Array.isArray(r.exerciseTimes) && r.exerciseTimes.length > 0) {
+                    if (names.length > r.exerciseTimes.length) names = names.slice(0, r.exerciseTimes.length);
+                    while (names.length < r.exerciseTimes.length) names.push('');
+                }
+                r.exerciseNames = names;
+                fixed++;
+            });
+            if (fixed > 0) saveDB('history');
+            localStorage.setItem(MIGRATION_KEY, '1');
+        }
+    } catch(e) { console.warn('[backfill exerciseNames]', e); }
 }
 
 function getTodayKey() { const d = new Date().getDay(); return ['sun','mon','tue','wed','thu','fri','sat'][d]; }
@@ -1996,6 +2052,10 @@ function getExerciseOriginalIndices(r) {
     const keys = Object.keys(sr).filter(k => /^\d+$/.test(k)).map(k => parseInt(k, 10)).sort((a, b) => a - b);
     if (keys.length === names.length) return keys;
     return names.map((_, i) => i);
+}
+function getExerciseTypes(r) {
+    if (Array.isArray(r && r.exerciseTypes) && r.exerciseTypes.length === (r.exerciseNames || []).length) return r.exerciseTypes;
+    return null;
 }
 function estimateWorkoutDuration(w) {
     if (!w || !Array.isArray(w.exercises)) return 0;
@@ -2224,10 +2284,13 @@ function getExerciseUniqueNames() {
     return [...seen].sort((a, b) => a.localeCompare(b, 'ru'));
 }
 
+function normalizeExerciseName(s) { return String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
+
 function getExerciseProgressData(exName, periodDays, metric) {
     const now = Date.now();
     const cutoff = periodDays ? now - periodDays * 24 * 60 * 60 * 1000 : 0;
     const result = [];
+    const targetNorm = normalizeExerciseName(exName);
     (DB.history || []).forEach(r => {
         let ts;
         try { ts = new Date(r.startTime).getTime(); } catch(e) { return; }
@@ -2237,18 +2300,24 @@ function getExerciseProgressData(exName, periodDays, metric) {
         const origIdxs = getExerciseOriginalIndices(r);
         const times = r.exerciseTimes || [];
         const sr = r.setResults || {};
+        const types = getExerciseTypes(r);
         let exIdx = -1;
         for (let i = 0; i < names.length; i++) {
-            if ((names[i] || '').trim() === exName) { exIdx = i; break; }
+            if (normalizeExerciseName(names[i]) === targetNorm) { exIdx = i; break; }
         }
         if (exIdx === -1) return;
         const origIdx = origIdxs[exIdx] !== undefined ? origIdxs[exIdx] : exIdx;
         const sets = sr[origIdx];
         const timeVal = times[exIdx];
+        const knownType = types ? types[exIdx] : null;
         let type = 'reps';
         let value = 0;
         let setsArr = null;
-        if (Array.isArray(sets)) {
+        if (knownType === 'time') {
+            type = 'time';
+            const t = (typeof timeVal === 'number' && timeVal > 0) ? timeVal : 0;
+            value = t;
+        } else if (Array.isArray(sets)) {
             type = 'reps';
             setsArr = sets.map(x => parseInt(x, 10) || 0);
             if (metric === 'sum') value = setsArr.reduce((a, b) => a + b, 0);
@@ -2295,23 +2364,42 @@ function renderExerciseChart(records) {
         const y = pad + (1 - (r.value - minV) / range) * (h - pad * 2);
         return { x, y, r };
     });
+    const maxVal = Math.max(...vals);
     const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
     const gridLines = [0, 0.5, 1].map(frac => {
         const y = pad + frac * (h - pad * 2);
         return `<line class="grid-line" x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}"/>`;
     }).join('');
-    const dots = points.map(p => `<circle class="dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
+    let trendD = '';
+    try {
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        points.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; });
+        const denom = n * sumXX - sumX * sumX;
+        if (denom !== 0) {
+            const slope = (n * sumXY - sumX * sumY) / denom;
+            const intercept = (sumY - slope * sumX) / n;
+            const x1 = pad, y1 = slope * x1 + intercept;
+            const x2 = w - pad, y2 = slope * x2 + intercept;
+            trendD = `<path class="trend-line" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)}"/>`;
+        }
+    } catch(e) {}
+    const dots = points.map(p => {
+        const isRecord = p.r.value === maxVal;
+        return `<circle class="dot${isRecord ? ' record' : ''}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isRecord ? 4 : 3}"/>`;
+    }).join('');
     const labels = points.map((p, i) => {
         if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return '';
         return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(p.r.date)}</text>`;
     }).join('');
-    return `<svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}<path class="line" d="${pathD}"/>${dots}${labels}</svg>`;
+    return `<svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}${trendD}<path class="line" d="${pathD}"/>${dots}${labels}</svg>`;
 }
 
 function renderExerciseTable(records, sortBy) {
     if (!records || records.length === 0) {
         return `<div style="text-align:center; color:var(--muted); padding:16px; font-size:0.85rem;">Нет записей</div>`;
     }
+    const maxVal = Math.max(...records.map(r => r.value));
     const sorted = [...records];
     if (sortBy === 'date-asc') sorted.sort((a, b) => a.date - b.date);
     else if (sortBy === 'val-desc') sorted.sort((a, b) => b.value - a.value);
@@ -2320,13 +2408,14 @@ function renderExerciseTable(records, sortBy) {
     const rows = sorted.map(r => {
         const unit = r.type === 'reps' ? 'повт.' : 'сек';
         const mainVal = r.type === 'reps' ? r.value : formatTime(r.value);
+        const isRecord = r.value === maxVal;
         let setsHtml = '';
         if (Array.isArray(r.sets) && r.sets.length > 1) {
             setsHtml = `<div class="sets-row">Подходы: ${r.sets.join(' / ')}</div>`;
         }
         return `<tr>
             <td>${formatShortDate(r.date)} <span style="color:var(--muted); font-size:0.75rem;">${r.time}</span></td>
-            <td class="val-cell">${mainVal} <span style="color:var(--muted); font-size:0.75rem; font-weight:400;">${unit}</span>${setsHtml}</td>
+            <td class="val-cell">${isRecord ? '🏅 ' : ''}${mainVal} <span style="color:var(--muted); font-size:0.75rem; font-weight:400;">${unit}</span>${setsHtml}</td>
         </tr>`;
     }).join('');
     return `<div class="exercise-table-wrap"><table class="exercise-table"><thead><tr><th>Дата</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -2334,7 +2423,9 @@ function renderExerciseTable(records, sortBy) {
 
 function renderActivityExerciseChart() {
     const names = getExerciseUniqueNames();
-    if (names.length === 0) return '';
+    if (names.length === 0) {
+        return `<div style="text-align:center; color:var(--muted); padding:16px; font-size:0.85rem;">Пока нет данных по упражнениям.<br>Сделайте тренировку — здесь появится график прогресса.</div>`;
+    }
     if (!activityExerciseSelected || !names.includes(activityExerciseSelected)) {
         activityExerciseSelected = names[0];
     }
@@ -2353,8 +2444,6 @@ function renderActivityExerciseChart() {
     let isTimeType = false;
     if (recordsProbe.length > 0) {
         isTimeType = recordsProbe.every(r => r.type === 'time');
-    } else {
-        isTimeType = false;
     }
     const metricDisabled = isTimeType;
 
@@ -2373,6 +2462,22 @@ function renderActivityExerciseChart() {
 
     const chartHtml = renderExerciseChart(recordsProbe);
     const tableHtml = renderExerciseTable(recordsProbe, activityTableSort);
+    let compareHtml = '';
+    try {
+        if (recordsProbe.length > 0) {
+            const prev = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod * 2, activityExerciseMetric)
+                .filter(r => r.date.getTime() < (Date.now() - activityExercisePeriod * 24 * 60 * 60 * 1000));
+            if (prev.length > 0) {
+                const avgCur = recordsProbe.reduce((s, r) => s + r.value, 0) / recordsProbe.length;
+                const avgPrev = prev.reduce((s, r) => s + r.value, 0) / prev.length;
+                const delta = avgCur - avgPrev;
+                const pct = avgPrev > 0 ? Math.round(delta / avgPrev * 100) : 0;
+                const cls = delta > 0 ? 'down' : (delta < 0 ? 'up' : 'same');
+                const sign = delta > 0 ? '+' : '';
+                compareHtml = `<div style="margin-top:6px; font-size:0.78rem; color:var(--muted); text-align:center;">Среднее vs прошлый период: <span class="measure-delta ${cls}" style="margin:0; padding:2px 8px; font-size:0.75rem;">${sign}${pct}%</span></div>`;
+            }
+        }
+    } catch(e) {}
 
     return `
         <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
@@ -2382,6 +2487,7 @@ function renderActivityExerciseChart() {
         </div>
         ${metricDisabled ? `<div style="color:var(--muted); font-size:0.75rem; margin-bottom:8px;">Упражнение на время — метрика не применима</div>` : ''}
         ${chartHtml}
+        ${compareHtml}
         <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0 6px; gap:8px;">
             <div style="font-weight:600; font-size:0.85rem; color:var(--muted);">Таблица</div>
             <div style="flex:0 0 auto; width:130px;">${sortSelectHtml}</div>
@@ -2392,16 +2498,19 @@ function renderActivityExerciseChart() {
 // ==== /Прогресс по упражнениям (Activity) ====
 
 // ==== Работа по неделям (Activity) ====
-function setWeekMetric(v) { if (!['work','duration','count','plan'].includes(v)) return; DB.settings.weekMetric = v; saveDB('settings'); renderActivity(); }
-function setWeekRange(v) { v = parseInt(v) || 8; if (![4,8,12].includes(v)) v = 8; DB.settings.weekRange = v; saveDB('settings'); renderActivity(); }
+function setWeekMetric(v) { if (!['work','duration','count','plan'].includes(v)) return; DB.settings.weekMetric = v; saveDB('settings'); invalidateActivityCache(); renderActivity(); }
+function setWeekRange(v) { v = parseInt(v) || 8; if (![4,8,12].includes(v)) v = 8; DB.settings.weekRange = v; saveDB('settings'); invalidateActivityCache(); renderActivity(); }
 
 function getWeekRecords(startKey) {
     const s = parseDateKey(startKey); s.setHours(0,0,0,0);
     const e = addDays(s, 7);
     return DB.history.filter(r => { try { const d = new Date(r.startTime); return d >= s && d < e; } catch(err) { return false; } });
 }
-function getWeekPlanStats(startKey) {
+function getWeekPlanStats(startKey, opts) {
     const s = parseDateKey(startKey); s.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayKey = formatDateKey(today);
+    const partialOnlyPast = !!(opts && opts.partialOnlyPast);
     let planned = 0, done = 0;
     DB.programs.forEach(p => {
         (p.weeks || []).forEach(w => {
@@ -2410,6 +2519,7 @@ function getWeekPlanStats(startKey) {
                 const date = addDays(parseDateKey(w.startDate), dayIdx);
                 const dateKey = formatDateKey(date);
                 if (date < s || date >= addDays(s, 7)) return;
+                if (partialOnlyPast && dateKey >= todayKey) return;
                 const ids = w.days[dk] || [];
                 if (ids.length === 0) return;
                 const occMap = {};
@@ -2429,7 +2539,13 @@ function getWeekValue(startKey, metric) {
     const records = getWeekRecords(startKey);
     if (metric === 'duration') return Math.round(records.reduce((s, r) => s + (r.totalDuration || 0), 0) / 60);
     if (metric === 'count') return records.length;
-    if (metric === 'plan') { const st = getWeekPlanStats(startKey); return st.planned > 0 ? st.pct : 0; }
+    if (metric === 'plan') {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const s = parseDateKey(startKey); s.setHours(0,0,0,0);
+        const isCurrent = formatDateKey(s) === formatDateKey(startOfWeekMonday(today));
+        const st = isCurrent ? getWeekPlanStats(startKey, { partialOnlyPast: true }) : getWeekPlanStats(startKey);
+        return st.planned > 0 ? st.pct : null;
+    }
     return Math.round(records.reduce((s, r) => s + (r.workTime || 0), 0) / 60);
 }
 function getWeekMetricUnit(metric) {
@@ -2452,19 +2568,27 @@ function buildWeekWorkChart() {
             const value = getWeekValue(startKey, metric);
             weeks.push({ start, startKey, value, isCurrent: i === 0 });
         }
-        const maxVal = Math.max(1, ...weeks.map(w => w.value));
-        const avg = weeks.length > 0 ? weeks.reduce((s, w) => s + w.value, 0) / weeks.length : 0;
+        const validForAvg = weeks.filter(w => w.value !== null && w.value !== undefined);
+        const avg = validForAvg.length > 0 ? validForAvg.reduce((s, w) => s + (w.value || 0), 0) / validForAvg.length : 0;
+        const maxVal = Math.max(1, ...validForAvg.map(w => w.value || 0));
         const avgPct = Math.min(100, (avg / maxVal) * 100);
 
         const barsHtml = weeks.map(w => {
-            const pct = Math.max(w.value > 0 ? 4 : 0, Math.round((w.value / maxVal) * 100));
-            const belowAvg = w.value < avg;
-            const fillCls = 'durations-bar-fill' + (w.isCurrent ? ' current-week' : '') + (belowAvg ? ' below-avg' : '') + (w.value <= 0 ? ' empty' : '');
+            const hasValue = w.value !== null && w.value !== undefined;
+            const v = hasValue ? w.value : 0;
+            const pct = Math.max(v > 0 ? 4 : 0, Math.round((v / maxVal) * 100));
+            const belowAvg = hasValue && v < avg;
+            const isNoPlan = metric === 'plan' && !hasValue;
+            const fillCls = 'durations-bar-fill'
+                + (isNoPlan ? ' no-plan' : '')
+                + (w.isCurrent ? ' current-week' : '')
+                + (belowAvg ? ' below-avg' : '')
+                + (v <= 0 && !isNoPlan ? ' empty' : '');
             const labelText = formatShortDate(w.start);
-            const ariaLabel = `${formatWeekRange(w.startKey)}: ${w.value} ${unit}`;
-            return `<div class="durations-bar${w.isCurrent ? ' current-week' : ''}" role="button" tabindex="0" aria-label="${ariaLabel}" data-week-start="${w.startKey}" onclick="showWeekActivityDetail('${w.startKey}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showWeekActivityDetail('${w.startKey}');}">
-                <div class="durations-bar-value">${w.value > 0 ? w.value : ''}</div>
-                <div class="${fillCls}" style="height:${pct}%;"></div>
+            const ariaLabel = `${formatWeekRange(w.startKey)}: ${isNoPlan ? 'нет плана' : v + ' ' + unit}`;
+            return `<div class="durations-bar${w.isCurrent ? ' current-week' : ''}${isNoPlan ? ' no-plan' : ''}" role="button" tabindex="0" aria-label="${ariaLabel}" data-week-start="${w.startKey}" onclick="showWeekActivityDetail('${w.startKey}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showWeekActivityDetail('${w.startKey}');}">
+                <div class="durations-bar-value">${isNoPlan ? '—' : (v > 0 ? v : '')}</div>
+                <div class="${fillCls}" style="height:${isNoPlan ? Math.max(2, Math.round(100 / Math.max(1, range))) : pct}%;"></div>
                 <div class="durations-bar-label">${labelText}</div>
             </div>`;
         }).join('');
@@ -2498,7 +2622,9 @@ function showWeekActivityDetail(startKey) {
         const start = parseDateKey(startKey); start.setHours(0,0,0,0);
         const end = addDays(start, 6);
         const records = getWeekRecords(startKey).sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-        const planStats = getWeekPlanStats(startKey);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const isCurrent = formatDateKey(start) === formatDateKey(startOfWeekMonday(today));
+        const planStats = isCurrent ? getWeekPlanStats(startKey, { partialOnlyPast: true }) : getWeekPlanStats(startKey);
         const totalDuration = records.reduce((s, r) => s + (r.totalDuration || 0), 0);
         const totalWork = records.reduce((s, r) => s + (r.workTime || 0), 0);
         const totalWarmup = records.reduce((s, r) => s + (r.warmupSeconds || 0), 0);
@@ -2519,8 +2645,9 @@ function showWeekActivityDetail(startKey) {
         let planHtml = '';
         if (planStats.planned > 0) {
             const planColor = planStats.pct >= 100 ? 'var(--accent)' : planStats.pct >= 50 ? 'var(--warn)' : 'var(--danger)';
+            const planLabel = isCurrent ? 'Выполнение плана (прошедшие дни)' : 'Выполнение плана';
             planHtml = `<div class="history-summary-card" style="margin-bottom:0; padding:14px;">
-                <div class="history-summary-title">Выполнение плана</div>
+                <div class="history-summary-title">${planLabel}</div>
                 <div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;">
                     <div class="history-summary-item"><div class="val" style="color:var(--accent);">${planStats.done}</div><div class="lbl">✅ выполнено</div></div>
                     <div class="history-summary-item"><div class="val" style="color:var(--danger);">${planStats.planned - planStats.done}</div><div class="lbl">❌ пропущено</div></div>
@@ -2760,6 +2887,8 @@ function saveRunState() {
         restBannerMode: !!runState.restBannerMode,
         timerFinished: !!runState.timerFinished,
         isMuted: runState.isMuted || false,
+        isDeload: runState.isDeload || false,
+        deloadPercent: runState.deloadPercent || 35,
         savedAt: savedAtTs
     };
     const serialized = JSON.stringify(snapshot);
@@ -2840,7 +2969,7 @@ function getActiveNotifications() {
             if (!week) return;
             (week.days[dayKey] || []).forEach(wid => {
                 const w = DB.workouts.find(x => x.id === wid);
-                if (w) todays.push({ workout: w, program: p });
+                if (w) todays.push({ workout: w, program: p, isDeload: !!(week.deloadDays && week.deloadDays[dayKey]) });
             });
         });
         const todayHistory = DB.history.filter(r => formatDateKey(new Date(r.startTime)) === todayKey);
@@ -2860,7 +2989,7 @@ function getActiveNotifications() {
             pendingCounts[id] = occurrence + 1;
             const key = `plan-${todayKey}-${id}-${occurrence}`;
             const isDismissed = !!(dismissed[key] && dismissed[key] > now);
-            list.push({ type: 'plan', key, workout: t.workout, program: t.program, dismissed: isDismissed });
+            list.push({ type: 'plan', key, workout: t.workout, program: t.program, dismissed: isDismissed, isDeload: !!t.isDeload });
         });
     }
     return list;
@@ -2936,10 +3065,11 @@ function openNotifCenter() {
         if (plans.length > 0) {
             html += `<div class="notif-section-title">📅 Планы на сегодня</div>`;
             plans.forEach((p, idx) => {
+                const deloadBadge = p.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px; margin-left:4px;">РАЗГРУЗКА</span>` : '';
                 if (p.dismissed) {
-                    html += `<div class="notif-item disabled"><div class="notif-status" style="color:var(--muted); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}</div><div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${p.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700;">🔔</button></div>`;
+                    html += `<div class="notif-item disabled"><div class="notif-status" style="color:var(--muted); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}${deloadBadge}</div><div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${p.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px;border-radius:10px; font-weight:700;">🔔</button></div>`;
                 } else {
-                    html += `<div class="notif-item"><div class="notif-status" style="color:var(--primary); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}</div><div class="notif-sub">📅 ${escapeHtml(p.program.name)}</div></div><button class="icon-btn" onclick="notifStartPlan(${p.workout.id}, this)" aria-label="Начать" style="background:var(--accent); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">▶</button></div>`;
+                    html += `<div class="notif-item"><div class="notif-status" style="color:var(--primary); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(p.program.name)}</div></div><button class="icon-btn" onclick="notifStartPlan(${p.workout.id}, this, ${p.isDeload || false})" aria-label="Начать" style="background:var(--accent); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">▶</button></div>`;
                 }
             });
         }
@@ -2994,12 +3124,12 @@ function enableAllNotifications(btn) {
     showToast('🔔 Все напоминания включены');
     openNotifCenter();
 }
-function notifStartPlan(workoutId, btn) {
+function notifStartPlan(workoutId, btn, isDeload) {
     const ov = btn.closest('.notif-side-overlay');
     if (ov) { ov.remove(); updateNotifGrabber(); }
     const w = DB.workouts.find(x => x.id === workoutId);
     if (!w) { showToast('⚠️ Тренировка удалена'); return; }
-    startWorkout(workoutId);
+    startWorkout(workoutId, !!isDeload);
 }
 function notifOpenResume(btn) {
     const ov = btn.closest('.notif-side-overlay');
@@ -3087,7 +3217,9 @@ function restoreRunState(saved) {
         exerciseTimes: saved.exerciseTimes ? [...saved.exerciseTimes] : [],
         lastBeepTargetTime: undefined, setFinishing: false, countdownValue: 3,
         workoutNameAnnounced: true, _flowStarting: false,
-        isMuted: saved.isMuted || false
+        isMuted: saved.isMuted || false,
+        isDeload: saved.isDeload || false,
+        deloadPercent: saved.deloadPercent || 35
     };
     document.getElementById('run-title').innerText = workout.name;
     acquireWakeLock(); enableExitProtection();
@@ -3411,7 +3543,6 @@ function saveNewOrder() {
     if (!container) return;
     const sel = dragContext.itemSelector, dbKey = dragContext.dbKey;
 
-    // Спецслучай: карточки активности
     if (dbKey === 'activityOrder') {
         const els = Array.from(container.querySelectorAll(sel));
         const keys = els.map(el => el.dataset.cardKey).filter(Boolean);
@@ -3439,7 +3570,8 @@ function renderHomeTodayBanner() {
         DB.programs.forEach(p => {
             const week = getActiveWeek(p, todayDate);
             if (!week) return;
-            (week.days[todayKey] || []).forEach(wid => { const w = DB.workouts.find(x => x.id === wid); if (w) todays.push({ workout: w, program: p }); });
+            const isDeloadDay = !!(week.deloadDays && week.deloadDays[todayKey]);
+            (week.days[todayKey] || []).forEach(wid => { const w = DB.workouts.find(x => x.id === wid); if (w) todays.push({ workout: w, program: p, isDeload: isDeloadDay }); });
         });
         if (todays.length === 0) { banner.style.display = 'none'; return; }
         const todayHistory = DB.history.filter(r => formatDateKey(new Date(r.startTime)) === todayDateKey);
@@ -3458,15 +3590,17 @@ function renderHomeTodayBanner() {
         const current = pending[homeSelectedExerciseIndex];
         const currentWorkout = current.workout;
         const showArrows = pending.length > 1;
+        const deloadBadge = current.isDeload ? `<div style="color:var(--warn); font-size:0.78rem; font-weight:700; text-align:center; margin-bottom:8px;">🏷 РАЗГРУЗОЧНЫЙ ДЕНЬ</div>` : '';
         banner.style.display = 'block';
         banner.innerHTML = `<div class="home-hero">
             <div class="subtitle">📅 ${DAY_NAMES_FULL[todayKey]} · Тренировка ${homeSelectedExerciseIndex + 1} из ${pending.length}</div>
+            ${deloadBadge}
             <div class="home-title-row">
                 ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(-1)" aria-label="Предыдущее упражнение">‹</button>` : `<div class="home-nav-spacer"></div>`}
                 <div class="title">${escapeHtml(currentWorkout.name)}</div>
                 ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(1)" aria-label="Следующее упражнение">›</button>` : `<div class="home-nav-spacer"></div>`}
             </div>
-            <button class="btn accent" onclick="startWorkout(${currentWorkout.id})" style="margin:0;">▶ Начать</button>
+            <button class="btn accent" onclick="startWorkout(${currentWorkout.id}, ${current.isDeload || false})" style="margin:0;">▶ Начать</button>
         </div>`;
     } catch(e) { banner.style.display = 'none'; }
 }
@@ -3477,7 +3611,8 @@ function cycleHomeExercise(dir) {
         DB.programs.forEach(p => {
             const week = getActiveWeek(p, todayDate);
             if (!week) return;
-            (week.days[todayKey] || []).forEach(wid => { const w = DB.workouts.find(x => x.id === wid); if (w) todays.push({ workout: w, program: p }); });
+            const isDeloadDay = !!(week.deloadDays && week.deloadDays[todayKey]);
+            (week.days[todayKey] || []).forEach(wid => { const w = DB.workouts.find(x => x.id === wid); if (w) todays.push({ workout: w, program: p, isDeload: isDeloadDay }); });
         });
         const todayHistory = DB.history.filter(r => formatDateKey(new Date(r.startTime)) === todayDateKey);
         const completedCounts = {};
@@ -3615,14 +3750,12 @@ function renderActivity() {
     const c = document.getElementById('activity-content');
     if (!c) return;
     try {
-        // Верхняя карточка со стриком — всегда сверху, не сворачивается и не перетаскивается
         const dates = getTrainingDates();
         const streak = calculateStreak(dates), record = calculateRecordStreak(dates);
         const totalTime = DB.history.reduce((s, r) => s + (r.totalDuration || 0), 0);
         const planStats = computePlanStats(30);
         const bestHour = getBestHours();
 
-        // Тело каждой карточки
         const weekGraphBody = `<div class="week-graph">${buildWeekGraph()}</div><div style="color:var(--muted); font-size:0.75rem; text-align:center; margin-top:8px;">минут работы по дням</div>`;
         const heatmapBody = `<div class="heatmap-grid">${buildHeatmap30()}</div><div class="heatmap-legend"><span>меньше</span><div class="heatmap-legend-box" style="background:var(--card-2);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.25);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.5);"></div><div class="heatmap-legend-box" style="background:var(--primary);"></div><span>больше</span></div>`;
         const timeOfDayBody = buildTimeOfDayHeatmap();
@@ -3642,7 +3775,6 @@ function renderActivity() {
 
         const totalBody = `<div class="stat-row"><div class="stat-label">🏆 Всего тренировок</div><div class="stat-value highlight">${DB.history.length}</div></div><div class="stat-row"><div class="stat-label">⏱ Общее время</div><div class="stat-value">${formatTime(Math.floor(totalTime))}</div></div>`;
 
-        // Собираем карточки по сохранённому порядку
         const order = getActivityOrder();
         const bodies = {
             week: weekGraphBody,
@@ -3658,20 +3790,17 @@ function renderActivity() {
         order.forEach(key => {
             if (key === 'besthour' && bestHour < 0) return;
             if (key === 'plan' && planStats.missedCount === 0) return;
-            if (key === 'exercise-progress' && !bodies[key]) return;
             const bodyHtml = bodies[key];
             if (!bodyHtml) return;
             cardsHtml += wrapActivityCard(key, bodyHtml);
         });
 
-        // Верхняя карточка со стриком
         c.innerHTML = `<div class="card" style="text-align:center; border:1px solid var(--fire);">
             <div style="font-size:3rem;">🔥</div>
             <div style="font-size:2rem; font-weight:800; margin:8px 0 4px; color:var(--fire);">${streak} ${pluralDays(streak)}</div>
             <div style="color:var(--muted); font-size:0.9rem;">подряд · рекорд ${record}</div>
         </div>` + cardsHtml;
 
-        // Drag-and-drop для карточек активности (long-press, как в шаблонах)
         c.querySelectorAll('.activity-card').forEach(el => {
             initDragAndDrop(el, {
                 containerSelector: '#activity-content',
@@ -3701,9 +3830,8 @@ function showDayActivityDetail(key) {
         const hasWarmup = (r.warmupSeconds || 0) > 0;
         const origIdxs = getExerciseOriginalIndices(r);
         listHtml += `<div class="history-card" style="margin:0;">
-            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}</div><div class="stats">🕐 ${formatClock(startT)} → ${formatClock(endT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
+            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">🕐 ${formatClock(startT)} → ${formatClock(endT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
             ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
-            ${((r.exerciseNames && r.exerciseNames.length > 0) || hasWarmup) ? `<details style="background:var(--card-2); border-radius:10px;"><summary style="padding:10px 12px; font-size:0.85rem; color:var(--muted);">📊 Упражнения</summary><div style="padding:0 12px 12px; display:flex; flex-direction:column; gap:6px;">${hasWarmup ? `<div style="padding:6px 0; border-bottom:1px solid var(--border-soft);"><div style="display:flex; justify-content:space-between; font-size:0.85rem; gap:8px;"><span style="flex:1; min-width:0; color:var(--warn);">🔥 Разминка</span><span style="color:var(--warn); font-weight:600; flex-shrink:0;">${formatTime(r.warmupSeconds)}</span></div></div>` : ''}${(r.exerciseNames || []).map((name, i) => { const origIdx = origIdxs[i] !== undefined ? origIdxs[i] : i; const note = (r.exerciseNotes || {})[origIdx]; const sets = (r.setResults || {})[origIdx]; const t = (r.exerciseTimes || [])[i]; const isSkipped = t !== undefined && t !== null && t < 0; return `<div style="padding:6px 0; border-bottom:1px solid var(--border-soft);"><div style="display:flex; justify-content:space-between; font-size:0.85rem; gap:8px;"><span style="flex:1; min-width:0; word-break:break-word;">${i+1}. ${escapeHtml(name || 'Упражнение')}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:600; flex-shrink:0;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>${sets && Array.isArray(sets) && sets.length ? `<div style="color:var(--muted); font-size:0.8rem; margin-top:2px;">🔁 подходы: ${sets.join(' / ')}</div>` : (sets === 'skipped' ? `<div style="color:var(--muted); font-size:0.8rem; margin-top:2px;">⏭ пропущено</div>` : '')}${note ? `<div style="color:var(--accent); font-size:0.8rem; margin-top:4px; font-style:italic;">📝 ${escapeHtml(note)}</div>` : ''}</div>`; }).join('')}</div></details>` : ''}
         </div>`;
     });
     const ov = document.createElement('div');
@@ -3777,8 +3905,8 @@ function renderMeasurements() {
     if (!c) return;
     try {
         const sorted = [...DB.measurements].sort((a, b) => {
-            const da = new Date(a.date).getTime();
-            const db = new Date(b.date).getTime();
+            const da = parseDateKey(a.date).getTime();
+            const db = parseDateKey(b.date).getTime();
             if (da !== db) return db - da;
             return (b.id || 0) - (a.id || 0);
         });
@@ -3795,12 +3923,12 @@ function renderMeasurements() {
                 const sign = delta > 0 ? '+' : '';
                 deltaHtml = `<div class="measure-delta ${cls}">${sign}${delta.toFixed(1)} кг с начала</div>`;
             } else { deltaHtml = `<div class="measure-delta same">—</div>`; }
-            currentHtml = `<div class="measure-current-card"><div class="measure-current-label">Текущий вес</div><div class="measure-current-value">${currentWeight.toFixed(1)}</div><div class="measure-current-unit">кг · ${formatShortDate(new Date(last.date))}</div>${deltaHtml}</div>`;
+            currentHtml = `<div class="measure-current-card"><div class="measure-current-label">Текущий вес</div><div class="measure-current-value">${currentWeight.toFixed(1)}</div><div class="measure-current-unit">кг · ${formatShortDate(parseDateKey(last.date))}</div>${deltaHtml}</div>`;
         }
         let chartHtml = '';
         const weightData = sorted.filter(m => typeof m.weight === 'number').sort((a, b) => {
-            const da = new Date(a.date).getTime();
-            const db = new Date(b.date).getTime();
+            const da = parseDateKey(a.date).getTime();
+            const db = parseDateKey(b.date).getTime();
             if (da !== db) return da - db;
             return (a.id || 0) - (b.id || 0);
         });
@@ -3816,7 +3944,7 @@ function renderMeasurements() {
             const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${(h - pad).toFixed(1)} L${points[0].x.toFixed(1)},${(h - pad).toFixed(1)} Z`;
             const gridLines = [0, 0.5, 1].map(frac => { const y = pad + frac * (h - pad * 2); return `<line class="grid-line" x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}"/>`; }).join('');
             const dots = points.map(p => `<circle class="dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
-            const labels = points.map((p, i) => { if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return ''; const d = new Date(p.m.date); return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(d)}</text>`; }).join('');
+            const labels = points.map((p, i) => { if (i !== 0 && i !== points.length - 1 && i !== Math.floor(points.length / 2)) return ''; const d = parseDateKey(p.m.date); return `<text class="label" x="${p.x.toFixed(1)}" y="${h - 4}" text-anchor="middle">${formatShortDate(d)}</text>`; }).join('');
             chartHtml = `<div class="card"><div style="font-weight:700; margin-bottom:4px;">📊 Динамика веса</div><svg class="weight-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${gridLines}<path class="area" d="${areaD}"/><path class="line" d="${pathD}"/>${dots}${labels}</svg></div>`;
         }
         let listHtml = '';
@@ -3827,7 +3955,7 @@ function renderMeasurements() {
             sorted.forEach(m => {
                 const dk = m.date;
                 if (!curGroup || curGroup.dateKey !== dk) {
-                    curGroup = { dateKey: dk, date: new Date(dk), records: [] };
+                    curGroup = { dateKey: dk, date: parseDateKey(dk), records: [] };
                     groups.push(curGroup);
                 }
                 curGroup.records.push(m);
@@ -4132,7 +4260,12 @@ function renderPrograms() {
         listEl.innerHTML = DB.programs.map(p => {
             const week = getActiveWeek(p, today);
             let todayInfo = 'сегодня вне программы';
-            if (week) { const ids = (week.days && week.days[todayKey]) || []; if (ids.length > 0) todayInfo = `Сегодня: ${ids.map(id => (DB.workouts.find(x => x.id === id) || {}).name || '?').join(' → ')}`; else todayInfo = 'Сегодня отдых'; }
+            if (week) {
+                const ids = (week.days && week.days[todayKey]) || [];
+                const isDeloadDay = !!(week.deloadDays && week.deloadDays[todayKey]);
+                if (ids.length > 0) todayInfo = `Сегодня: ${ids.map(id => (DB.workouts.find(x => x.id === id) || {}).name || '?').join(' → ')}${isDeloadDay ? ' 🏷' : ''}`;
+                else todayInfo = 'Сегодня отдых';
+            }
             const isChecked = programsSelectedIds.has(p.id);
             if (programsSelectionMode) {
                 return `<div class="card" style="cursor:pointer;" onclick="toggleProgramSelection(${p.id})"><div style="display:flex; align-items:center; gap:10px;"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}"></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:1.05rem;">📅 ${escapeHtml(p.name)}</div><div style="color:var(--muted); font-size:0.82rem; margin-top:4px;">${(p.weeks||[]).length} ${pluralWeeks((p.weeks||[]).length)}</div></div></div></div>`;
@@ -4169,9 +4302,10 @@ function renderProgramsCalendar() {
                         const date = addDays(parseDateKey(w.startDate), dayIdx);
                         const dateKey = formatDateKey(date);
                         if (!planByDay[dateKey]) planByDay[dateKey] = [];
+                        const isDeloadDay = !!(w.deloadDays && w.deloadDays[dk]);
                         (w.days[dk] || []).forEach(wid => {
                             const occIdx = planByDay[dateKey].filter(x => x.wid === wid).length;
-                            planByDay[dateKey].push({ wid, programId: p.id, programName: p.name, occIdx });
+                            planByDay[dateKey].push({ wid, programId: p.id, programName: p.name, occIdx, isDeload: isDeloadDay });
                         });
                     });
                 });
@@ -4187,12 +4321,14 @@ function renderProgramsCalendar() {
             let doneCount = 0;
             try { doneCount = plan.filter(x => { try { return getPlanStatus(x.wid, date, x.occIdx).status === 'done'; } catch(e) { return false; } }).length; } catch(e) { doneCount = 0; }
             const hasWorkouts = plan.length > 0;
+            const hasDeload = plan.some(x => x.isDeload);
             const hasDone = doneCount > 0 && doneCount === plan.length;
-            const dots = plan.slice(0, 4).map(x => { try { const st = getPlanStatus(x.wid, date, x.occIdx); return `<div class="day-dot ${st.status === 'done' ? 'done' : ''}"></div>`; } catch(e) { return `<div class="day-dot"></div>`; } }).join('');
+            const dots = plan.slice(0, 4).map(x => { try { const st = getPlanStatus(x.wid, date, x.occIdx); return `<div class="day-dot ${st.status === 'done' ? 'done' : ''}${x.isDeload ? ' deload' : ''}"></div>`; } catch(e) { return `<div class="day-dot"></div>`; } }).join('');
             const cls = ['prog-calendar-day'];
             if (isToday) cls.push('today');
             if (hasWorkouts) cls.push('has-workouts');
             if (hasDone) cls.push('has-done');
+            if (hasDeload) cls.push('has-deload');
             cells.push({ type: 'day', day: d, date, dateKey, cls: cls.join(' '), dots, count: plan.length });
         }
         const monthName = monthNames[programsCalendarMonth.getMonth()] || '';
@@ -4213,11 +4349,12 @@ function showCalendarDay(year, month, day) {
                 DAY_KEYS.forEach((dk, dayIdx) => {
                     const d = addDays(parseDateKey(w.startDate), dayIdx);
                     if (formatDateKey(d) === dateKey) {
+                        const isDeloadDay = !!(w.deloadDays && w.deloadDays[dk]);
                         (w.days[dk] || []).forEach(wid => {
                             const occIdx = occMap[wid] || 0;
                             occMap[wid] = occIdx + 1;
                             const wObj = DB.workouts.find(x => x.id === wid);
-                            entries.push({ wid, wName: wObj ? wObj.name : '(удалено)', program: p, occIdx, status: getPlanStatus(wid, date, occIdx) });
+                            entries.push({ wid, wName: wObj ? wObj.name : '(удалено)', program: p, occIdx, status: getPlanStatus(wid, date, occIdx), isDeload: isDeloadDay });
                         });
                     }
                 });
@@ -4228,7 +4365,7 @@ function showCalendarDay(year, month, day) {
         if (entries.length === 0) { showToast(`${title} · нет планов`); return; }
         const ov = document.createElement('div');
         ov.className = 'notif-side-overlay';
-        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; return `<div class="notif-item" style="cursor:pointer;" onclick="closeTopSheet(); startWorkout(${e.wid})"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+        ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${entries.map(e => { const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; return `<div class="notif-item" style="cursor:pointer;" onclick="closeTopSheet(); startWorkout(${e.wid}, ${e.isDeload || false})"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
         document.body.appendChild(ov);
         setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
         ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -4238,7 +4375,7 @@ function openProgramEditor(id) {
     editingProgramId = id;
     if (id === null) {
         const monday = startOfWeekMonday(new Date());
-        editorProgram = { name: '', weeks: [{ startDate: formatDateKey(monday), days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deload: false }] };
+        editorProgram = { name: '', weeks: [{ startDate: formatDateKey(monday), days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deloadDays: { mon:false, tue:false, wed:false, thu:false, fri:false, sat:false, sun:false } }] };
         document.getElementById('program-name').value = '';
         document.getElementById('program-editor-title').innerText = 'Новая программа';
         document.getElementById('program-delete-btn').style.display = 'none';
@@ -4246,8 +4383,15 @@ function openProgramEditor(id) {
         const p = DB.programs.find(x => x.id === id);
         if (!p) return;
         editorProgram = JSON.parse(JSON.stringify(p));
-        if (!editorProgram.weeks || editorProgram.weeks.length === 0) { const monday = startOfWeekMonday(new Date()); editorProgram.weeks = [{ startDate: formatDateKey(monday), days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deload: false }]; }
-        editorProgram.weeks.forEach(w => { if (!w.days) w.days = {}; if (typeof w.deload !== 'boolean') w.deload = false; DAY_KEYS.forEach(k => { if (!Array.isArray(w.days[k])) w.days[k] = w.days[k] ? [w.days[k]] : []; }); });
+        if (!editorProgram.weeks || editorProgram.weeks.length === 0) { const monday = startOfWeekMonday(new Date()); editorProgram.weeks = [{ startDate: formatDateKey(monday), days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deloadDays: { mon:false, tue:false, wed:false, thu:false, fri:false, sat:false, sun:false } }]; }
+        editorProgram.weeks.forEach(w => {
+            if (!w.days) w.days = {};
+            if (!w.deloadDays || typeof w.deloadDays !== 'object') w.deloadDays = {};
+            DAY_KEYS.forEach(k => {
+                if (!Array.isArray(w.days[k])) w.days[k] = w.days[k] ? [w.days[k]] : [];
+                if (typeof w.deloadDays[k] !== 'boolean') w.deloadDays[k] = false;
+            });
+        });
         document.getElementById('program-name').value = p.name || '';
         document.getElementById('program-editor-title').innerText = 'Редактирование';
         document.getElementById('program-delete-btn').style.display = 'block';
@@ -4268,6 +4412,7 @@ function renderProgramWeeksList() {
         let daysHtml = '';
         DAY_KEYS.forEach((dk, dayIdx) => {
             const ids = w.days[dk] || [];
+            const isDeload = !!(w.deloadDays && w.deloadDays[dk]);
             const dk_date = addDays(parseDateKey(w.startDate), dayIdx);
             const dk_dateKey = formatDateKey(dk_date);
             const isToday = dk_dateKey === todayKey;
@@ -4288,21 +4433,20 @@ function renderProgramWeeksList() {
                     }).join(' ');
                 }
                 const counter = ids.length > 0 ? `<span class="day-count" style="background:${doneCount === ids.length ? 'var(--accent)' : 'var(--danger)'};">${doneCount} из ${ids.length}</span>` : '';
-                daysHtml += `<div class="week-day-row ${isToday ? 'today' : ''}" onclick="showToast('Прошедший день нельзя менять')"><span class="day-name">${DAY_NAMES_SHORT[dk]}</span><span class="day-workouts">${itemsHtml}</span>${counter}</div>`;
+                daysHtml += `<div class="week-day-row ${isToday ? 'today' : ''}${isDeload ? ' deload-day' : ''}" onclick="showToast('Прошедший день нельзя менять')"><span class="day-name">${DAY_NAMES_SHORT[dk]}</span><span class="day-workouts">${itemsHtml}</span>${isDeload ? '<span class="day-deload-badge">🏷</span>' : ''}${counter}</div>`;
             } else {
                 const names = ids.map(id => (DB.workouts.find(x => x.id === id) || {}).name || '(удалено)');
-                daysHtml += `<div class="week-day-row ${isToday ? 'today' : ''}" onclick="openDayEditor(${idx}, '${dk}')"><span class="day-name">${DAY_NAMES_SHORT[dk]}</span><span class="day-workouts">${names.length ? escapeHtml(names.join(' → ')) : '—'}</span>${ids.length ? `<span class="day-count">${ids.length}</span>` : ''}</div>`;
+                daysHtml += `<div class="week-day-row ${isToday ? 'today' : ''}${isDeload ? ' deload-day' : ''}" onclick="openDayEditor(${idx}, '${dk}')"><span class="day-name">${DAY_NAMES_SHORT[dk]}</span><span class="day-workouts">${names.length ? escapeHtml(names.join(' → ')) : '—'}</span>${isDeload ? '<span class="day-deload-badge">🏷</span>' : ''}${ids.length ? `<span class="day-count">${ids.length}</span>` : ''}</div>`;
             }
         });
-        return `<div class="week-block"><div class="week-header" onclick="toggleWeekCollapse('${w.startDate}')"><div><div class="week-title">${isCurrent ? '📅 ' : ''}Неделя ${idx + 1}${isCurrent ? ' (текущая)' : ''}${w.deload ? `<span class="week-deload-badge">Разгрузка</span>` : ''}</div><div class="week-subtitle">${formatWeekRange(w.startDate)}</div></div><div style="color:var(--muted); font-size:1.2rem;">${isCollapsed ? '▸' : '▾'}</div></div>${isCollapsed ? '' : `<div class="week-days">${daysHtml}</div><div class="week-actions"><button class="btn ghost small" onclick="event.stopPropagation(); copyWeek(${idx})" style="flex:1;">📋 Скопировать неделю</button><button class="btn ghost small" onclick="event.stopPropagation(); toggleWeekDeload(${idx})" style="flex:1; color:${w.deload ? 'var(--warn)' : 'var(--muted)'};">${w.deload ? '✅ Разгрузка' : '🏷 Разгрузка'}</button><button class="btn ghost small" onclick="event.stopPropagation(); deleteWeek(${idx})" style="color:var(--danger);" aria-label="Удалить неделю">🗑</button></div>`}</div>`;
+        return `<div class="week-block"><div class="week-header" onclick="toggleWeekCollapse('${w.startDate}')"><div><div class="week-title">${isCurrent ? '📅 ' : ''}Неделя ${idx + 1}${isCurrent ? ' (текущая)' : ''}</div><div class="week-subtitle">${formatWeekRange(w.startDate)}</div></div><div style="color:var(--muted); font-size:1.2rem;">${isCollapsed ? '▸' : '▾'}</div></div>${isCollapsed ? '' : `<div class="week-days">${daysHtml}</div><div class="week-actions"><button class="btn ghost small" onclick="event.stopPropagation(); copyWeek(${idx})" style="flex:1;">📋 Скопировать неделю</button><button class="btn ghost small" onclick="event.stopPropagation(); deleteWeek(${idx})" style="color:var(--danger);" aria-label="Удалить неделю">🗑</button></div>`}</div>`;
     }).join('');
 }
-function toggleWeekDeload(idx) { const w = editorProgram.weeks[idx]; if (!w) return; w.deload = !w.deload; renderProgramWeeksList(); }
 function toggleWeekCollapse(key) { collapsedWeeks[key] = !collapsedWeeks[key]; renderProgramWeeksList(); }
 function addWeekToEditor() {
     const last = editorProgram.weeks[editorProgram.weeks.length - 1];
     const start = last ? formatDateKey(addDays(parseDateKey(last.startDate), 7)) : formatDateKey(startOfWeekMonday(new Date()));
-    editorProgram.weeks.push({ startDate: start, days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deload: false });
+    editorProgram.weeks.push({ startDate: start, days: { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }, deloadDays: { mon:false, tue:false, wed:false, thu:false, fri:false, sat:false, sun:false } });
     renderProgramWeeksList();
 }
 async function deleteWeek(idx) {
@@ -4315,8 +4459,11 @@ function copyWeek(idx) {
     const src = editorProgram.weeks[idx];
     if (!src) return;
     const newStart = formatDateKey(addDays(parseDateKey(src.startDate), 7));
-    const newWeek = { startDate: newStart, days: {}, deload: !!src.deload };
-    DAY_KEYS.forEach(k => { newWeek.days[k] = [...(src.days[k] || [])]; });
+    const newWeek = { startDate: newStart, days: {}, deloadDays: {} };
+    DAY_KEYS.forEach(k => {
+        newWeek.days[k] = [...(src.days[k] || [])];
+        newWeek.deloadDays[k] = !!(src.deloadDays && src.deloadDays[k]);
+    });
     editorProgram.weeks.splice(idx + 1, 0, newWeek);
     renderProgramWeeksList();
     showToast(`📋 Скопировано на ${formatWeekRange(newStart)}`);
@@ -4352,16 +4499,23 @@ function openDayEditor(weekIdx, dayKey) {
     const week = editorProgram.weeks[weekIdx];
     if (!week) return;
     const currentIds = week.days[dayKey] || [];
+    const isDeload = !!(week.deloadDays && week.deloadDays[dayKey]);
     const d = addDays(parseDateKey(week.startDate), DAY_KEYS.indexOf(dayKey));
     const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
     const title = `${DAY_NAMES_FULL[dayKey]}, ${d.getDate()} ${months[d.getMonth()]}`;
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     ov.id = 'day-editor-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 85vh;"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="color:var(--muted); font-size:0.85rem; text-align:center; flex-shrink:0;" id="day-count-label">${currentIds.length} выбрано</div><div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right: 4px;"><div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Выбрано (в порядке выполнения)</div><div style="display:flex; flex-direction:column; gap:6px;" id="day-selected-list">${renderDaySelected(weekIdx, dayKey)}</div><div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:6px;">Доступные</div><div style="display:flex; flex-direction:column; gap:6px;" id="day-available-list">${renderDayAvailable(weekIdx, dayKey)}</div></div><div class="sheet-fixed-bottom" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;"><button class="btn accent" onclick="closeDayEditor()">Готово</button></div></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 85vh;"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${title}</h2><div style="color:var(--muted); font-size:0.85rem; text-align:center; flex-shrink:0;" id="day-count-label">${currentIds.length} выбрано</div><div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right: 4px;"><div class="deload-day-toggle"><input type="checkbox" id="day-deload-checkbox" ${isDeload ? 'checked' : ''} onchange="toggleDayDeload(${weekIdx}, '${dayKey}', this.checked)"><label for="day-deload-checkbox" style="cursor:pointer; flex:1; font-size:0.85rem;">🏷 Разгрузочный день (снизить нагрузку на 35%)</label></div><div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Выбрано (в порядке выполнения)</div><div style="display:flex; flex-direction:column; gap:6px;" id="day-selected-list">${renderDaySelected(weekIdx, dayKey)}</div><div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:6px;">Доступные</div><div style="display:flex; flex-direction:column; gap:6px;" id="day-available-list">${renderDayAvailable(weekIdx, dayKey)}</div></div><div class="sheet-fixed-bottom" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;"><button class="btn accent" onclick="closeDayEditor()">Готово</button></div></div>`;
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) closeDayEditor(); });
+}
+function toggleDayDeload(weekIdx, dayKey, checked) {
+    const w = editorProgram.weeks[weekIdx];
+    if (!w) return;
+    if (!w.deloadDays) w.deloadDays = {};
+    w.deloadDays[dayKey] = !!checked;
 }
 function addDayWorkout(weekIdx, dayKey, workoutId) { const w = editorProgram.weeks[weekIdx]; if (!w) return; if (!w.days[dayKey]) w.days[dayKey] = []; w.days[dayKey].push(workoutId); refreshDayEditor(weekIdx, dayKey); }
 function removeDayWorkout(weekIdx, dayKey, idx) { const w = editorProgram.weeks[weekIdx]; if (!w || !w.days[dayKey]) return; w.days[dayKey].splice(idx, 1); refreshDayEditor(weekIdx, dayKey); }
@@ -4916,7 +5070,7 @@ function calcProgress() {
     return Math.min(100, ((doneEx + partial) / totalEx) * 100);
 }
 let startWorkoutInProgress = false;
-async function startWorkout(id) {
+async function startWorkout(id, isDeload) {
     if (startWorkoutInProgress) return;
     if (runState && runState.phase !== 'finish') { showToast('⚠️ Тренировка уже запущена'); return; }
     startWorkoutInProgress = true;
@@ -4941,8 +5095,29 @@ async function startWorkout(id) {
         const w = DB.workouts.find(x => x.id === id);
         if (!w) { showToast('⚠️ Тренировка не найдена'); return; }
         try { await requestNotificationPermission(); } catch(e) {}
+        let workoutForRun = w;
+        let deloadPercent = 35;
+        if (isDeload) {
+            const ok = await customConfirm('🏷 Разгрузочный день.\n\nСнизить целевые показатели на 35%?\n\n(подходы и повторения будут уменьшены, тренировка не попадёт в рекорды)', { title: 'Разгрузка', okText: '✅ Снизить на 35%', cancelText: 'Тренироваться обычно', danger: false });
+            if (ok) {
+                workoutForRun = JSON.parse(JSON.stringify(w));
+                workoutForRun.exercises = workoutForRun.exercises.map(el => {
+                    if (el.kind !== 'exercise') return el;
+                    const copy = Object.assign({}, el);
+                    if (copy.type === 'reps') copy.targetReps = Math.max(1, Math.round((copy.targetReps || 10) * 0.65));
+                    if (copy.type === 'sets') {
+                        if (copy.setMode === 'reps') copy.targetReps = Math.max(1, Math.round((copy.targetReps || 10) * 0.65));
+                        if (copy.setMode === 'time') copy.setDuration = Math.max(5, Math.round((copy.setDuration || 45) * 0.65));
+                    }
+                    if (copy.type === 'timer') copy.timerDuration = Math.max(5, Math.round((copy.timerDuration || 60) * 0.65));
+                    return copy;
+                });
+            } else {
+                deloadPercent = 0;
+            }
+        }
         runState = {
-            workout: w, index: 0, phase: 'ready',
+            workout: workoutForRun, index: 0, phase: 'ready',
             currentSet: 1, restPhase: null,
             setResults: {}, exerciseNotes: {}, workoutNoteDraft: '',
             currentExerciseWorkTime: 0, lastSetElapsed: 0,
@@ -4958,9 +5133,11 @@ async function startWorkout(id) {
             startTime: new Date(), totalWorkTime: 0, lastFinishedWorkElapsed: 0,
             exerciseTimes: [], lastBeepTargetTime: undefined, setFinishing: false, countdownValue: 3,
             workoutNameAnnounced: false, _flowStarting: false, isMuted: false,
-            timerBeepPlayed: false
+            timerBeepPlayed: false,
+            isDeload: deloadPercent > 0,
+            deloadPercent: deloadPercent
         };
-        document.getElementById('run-title').innerText = w.name;
+        document.getElementById('run-title').innerText = w.name + (deloadPercent > 0 ? ' 🏷' : '');
         acquireWakeLock(); enableExitProtection();
         renderRun(); showScreen('screen-run'); saveRunState();
         if (w.autoStart) setTimeout(() => {
@@ -5885,7 +6062,13 @@ function showFinishScreen() {
     speak('Тренировка завершена. Отличная работа!');
     fireConfetti();
     const exerciseOriginalIndices = [];
-    runState.workout.exercises.forEach((el, i) => { if (el.kind === 'exercise') exerciseOriginalIndices.push(i); });
+    const exerciseTypes = [];
+    runState.workout.exercises.forEach((el, i) => {
+        if (el.kind === 'exercise') {
+            exerciseOriginalIndices.push(i);
+            exerciseTypes.push(el.type === 'timer' ? 'time' : (el.type === 'sets' && el.setMode === 'time' ? 'time' : 'reps'));
+        }
+    });
     const record = {
         id: Date.now(), workoutId: runState.workout.id, workoutName: runState.workout.name,
         startTime: runState.startTime.toISOString(), endTime: endTime.toISOString(),
@@ -5895,11 +6078,14 @@ function showFinishScreen() {
         exerciseTimes: [...runState.exerciseTimes],
         exerciseNames: runState.workout.exercises.filter(e => e.kind === 'exercise').map(e => e.name || ''),
         exerciseOriginalIndices,
+        exerciseTypes,
         exerciseNotes: JSON.parse(JSON.stringify(runState.exerciseNotes || {})),
         workoutNote: runState.workoutNoteDraft || '',
-        setResults: JSON.parse(JSON.stringify(runState.setResults || {}))
+        setResults: JSON.parse(JSON.stringify(runState.setResults || {})),
+        isDeload: !!runState.isDeload
     };
     DB.history.push(record);
+    invalidateActivityCache();
     const removed = pruneHistory(HISTORY_PRUNE_LIMIT);
     if (removed > 0) setTimeout(() => showToast(`📜 История обрезана до ${HISTORY_PRUNE_LIMIT} записей`), 800);
     saveDB('history');
@@ -6036,9 +6222,8 @@ function renderHistoryList() {
             return `<div class="history-card" onclick="toggleHistorySelection(${r.id})" style="cursor:pointer;"><div class="history-top"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}"></div><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)}</div></div></div></div>`;
         }
         return `<div class="swipe-container" data-history-id="${r.id}"><button class="swipe-delete-btn" data-delete-id="${r.id}">🗑 Удалить</button><div class="history-card">
-            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}${hasWarmup ? ' · 🔥 ' + formatTime(r.warmupSeconds) : ''}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button><button class="icon-btn delete" onclick="deleteHistoryRecord(${r.id})" title="Удалить" aria-label="Удалить">🗑</button></div></div>
+            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName)}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">${formatDate(new Date(r.startTime))} · ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}${hasWarmup ? ' · 🔥 ' + formatTime(r.warmupSeconds) : ''}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button><button class="icon-btn delete" onclick="deleteHistoryRecord(${r.id})" title="Удалить" aria-label="Удалить">🗑</button></div></div>
             ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
-            ${((r.exerciseNames && r.exerciseNames.length > 0) || hasWarmup) ? `<details style="background:var(--card-2); border-radius:10px;"><summary style="padding:10px 12px; font-size:0.85rem; color:var(--muted);">📊 Упражнения${hasNotes ? ' и заметки' : ''}</summary><div style="padding:0 12px 12px; display:flex; flex-direction:column; gap:6px;">${hasWarmup ? `<div style="padding:6px 0; border-bottom:1px solid var(--border-soft);"><div style="display:flex; justify-content:space-between; font-size:0.85rem; gap:8px;"><span style="flex:1; min-width:0; color:var(--warn);">🔥 Разминка</span><span style="color:var(--warn); font-weight:600; flex-shrink:0;">${formatTime(r.warmupSeconds)}</span></div></div>` : ''}${(r.exerciseNames || []).map((name, i) => { const origIdx = origIdxs[i] !== undefined ? origIdxs[i] : i; const note = (r.exerciseNotes || {})[origIdx]; const sets = (r.setResults || {})[origIdx]; const t = (r.exerciseTimes || [])[i]; const isSkipped = t !== undefined && t !== null && t < 0; return `<div style="padding:6px 0; border-bottom:1px solid var(--border-soft);"><div style="display:flex; justify-content:space-between; font-size:0.85rem; gap:8px;"><span style="flex:1; min-width:0; word-break:break-word;">${i+1}. ${escapeHtml(name || 'Упражнение')}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:600; flex-shrink:0;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>${sets && Array.isArray(sets) && sets.length ? `<div style="color:var(--muted); font-size:0.8rem; margin-top:2px;">🔁 подходы: ${sets.join(' / ')}</div>` : (sets === 'skipped' ? `<div style="color:var(--muted); font-size:0.8rem; margin-top:2px;">⏭ пропущено</div>` : '')}${note ? `<div style="color:var(--accent); font-size:0.8rem; margin-top:4px; font-style:italic;">📝 ${escapeHtml(note)}</div>` : ''}</div>`; }).join('')}</div></details>` : ''}
         </div></div>`;
     }).join('');
     c.querySelectorAll('.swipe-container').forEach(container => {
@@ -6165,6 +6350,7 @@ function shareResult(id) {
     if (!r) return;
     let text = `💪 Тренировка: ${r.workoutName}\n📅 ${formatDate(new Date(r.startTime))}\n⏱ ${formatTime(r.totalDuration)}\n💪 ${formatTime(r.workTime)}`;
     if ((r.warmupSeconds || 0) > 0) text += `\n🔥 Разминка: ${formatTime(r.warmupSeconds)}`;
+    if (r.isDeload) text += `\n🏷 Разгрузочная`;
     text += `\n\n#FitTrainer`;
     if (navigator.share) navigator.share({ title: 'Тренировка', text }).catch(() => showShareFallback(text));
     else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => showToast('📋 Скопировано')).catch(() => showShareFallback(text));
@@ -6491,6 +6677,7 @@ function importData(event) {
             saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
             validateAndMigrateDB();
             applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
+            invalidateActivityCache();
             showToast('Импорт успешен');
             showScreen('screen-home');
         } catch(err) { showToast('Ошибка: ' + err.message); }
