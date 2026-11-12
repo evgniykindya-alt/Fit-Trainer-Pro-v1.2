@@ -503,10 +503,22 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .time-map-block .tm-icon { font-size: 1.5rem; margin-bottom: 6px; }
 .time-map-block .tm-count { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
 .time-map-block .tm-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-.durations-chart { display: flex; align-items: flex-end; gap: 4px; height: 100px; margin-top: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--border-soft); }
-.durations-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; justify-content: flex-end; }
-.durations-bar-fill { width: 100%; background: linear-gradient(180deg, var(--accent), var(--primary)); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s; }
-.durations-bar-label { font-size: 0.6rem; color: var(--muted); }
+.durations-chart { display: flex; align-items: flex-end; gap: 4px; height: 100px; margin-top: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--border-soft); position: relative; }
+.durations-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; justify-content: flex-end; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 6px 6px 0 0; transition: background 0.15s; position: relative; z-index: 1; }
+.durations-bar:active { background: var(--card-2); }
+.durations-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.durations-bar-fill { width: 100%; background: linear-gradient(180deg, var(--accent), var(--primary)); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s, background 0.2s; }
+.durations-bar-fill.below-avg { background: linear-gradient(180deg, var(--primary), var(--primary-strong)); opacity: 0.75; }
+.durations-bar-fill.current-week { background: linear-gradient(180deg, var(--warn), var(--fire)); }
+.durations-bar-fill.current-week.below-avg { background: linear-gradient(180deg, var(--warn), var(--warn)); opacity: 0.85; }
+.durations-bar-fill.empty { background: var(--card-2); }
+.durations-bar-label { font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
+.durations-bar-value { font-size: 0.62rem; color: var(--accent); font-weight: 700; min-height: 0.9em; line-height: 1; }
+.durations-bar.current-week .durations-bar-label { color: var(--warn); font-weight: 700; }
+.durations-avg-line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted-2); pointer-events: none; z-index: 2; }
+.durations-avg-label { position: absolute; right: 0; top: -14px; font-size: 0.62rem; color: var(--muted); background: var(--card); padding: 0 4px; border-radius: 4px; }
+.week-metric-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.week-metric-row .select { flex: 1 1 120px; margin: 0; padding: 8px 32px 8px 10px; font-size: 0.82rem; min-width: 0; }
 .measure-current-card { background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border: 1px solid var(--primary); border-radius: var(--r-md); padding: 20px; margin-top: 16px; margin-bottom: 12px; text-align: center; }
 .measure-current-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
 .measure-current-value { font-size: 2.5rem; font-weight: 800; color: var(--primary); line-height: 1; }
@@ -1199,6 +1211,8 @@ async function importDataFromJson(text) {
         if (typeof DB.settings.quietHoursEnd !== 'number') DB.settings.quietHoursEnd = 8;
         if (typeof DB.settings.programsCalendarCollapsed !== 'boolean') DB.settings.programsCalendarCollapsed = false;
         if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
+        if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
+        if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
         saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
         validateAndMigrateDB();
         applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -1398,7 +1412,9 @@ DB.settings = Object.assign({
     weeklyDigest: true,
     quietHours: false, quietHoursStart: 22, quietHoursEnd: 8,
     programsCalendarCollapsed: false,
-    builtinTemplatesCollapsed: false
+    builtinTemplatesCollapsed: false,
+    weekMetric: 'work',
+    weekRange: 8
 }, DB.settings);
 if ('announceConfirm' in DB.settings) delete DB.settings.announceConfirm;
 if (!Array.isArray(DB.settings.hiddenBuiltins)) DB.settings.hiddenBuiltins = [];
@@ -1430,6 +1446,8 @@ if (typeof DB.settings.quietHoursStart !== 'number') DB.settings.quietHoursStart
 if (typeof DB.settings.quietHoursEnd !== 'number') DB.settings.quietHoursEnd = 8;
 if (typeof DB.settings.programsCalendarCollapsed !== 'boolean') DB.settings.programsCalendarCollapsed = false;
 if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
+if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
+if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
 if (!Array.isArray(DB.measurements)) DB.measurements = [];
 const HIDEABLE_MENU_KEYS = ['templates','programs','activity','history','measurements'];
 if (!Array.isArray(DB.settings.hiddenMenuItems)) DB.settings.hiddenMenuItems = [];
@@ -2336,7 +2354,6 @@ function renderActivityExerciseChart() {
     if (recordsProbe.length > 0) {
         isTimeType = recordsProbe.every(r => r.type === 'time');
     } else {
-        // fallback: если записей нет — не блокируем метрику
         isTimeType = false;
     }
     const metricDisabled = isTimeType;
@@ -2373,6 +2390,175 @@ function renderActivityExerciseChart() {
     `;
 }
 // ==== /Прогресс по упражнениям (Activity) ====
+
+// ==== Работа по неделям (Activity) ====
+function setWeekMetric(v) { if (!['work','duration','count','plan'].includes(v)) return; DB.settings.weekMetric = v; saveDB('settings'); renderActivity(); }
+function setWeekRange(v) { v = parseInt(v) || 8; if (![4,8,12].includes(v)) v = 8; DB.settings.weekRange = v; saveDB('settings'); renderActivity(); }
+
+function getWeekRecords(startKey) {
+    const s = parseDateKey(startKey); s.setHours(0,0,0,0);
+    const e = addDays(s, 7);
+    return DB.history.filter(r => { try { const d = new Date(r.startTime); return d >= s && d < e; } catch(err) { return false; } });
+}
+function getWeekPlanStats(startKey) {
+    const s = parseDateKey(startKey); s.setHours(0,0,0,0);
+    let planned = 0, done = 0;
+    DB.programs.forEach(p => {
+        (p.weeks || []).forEach(w => {
+            if (!w || !w.days || !w.startDate) return;
+            DAY_KEYS.forEach((dk, dayIdx) => {
+                const date = addDays(parseDateKey(w.startDate), dayIdx);
+                const dateKey = formatDateKey(date);
+                if (date < s || date >= addDays(s, 7)) return;
+                const ids = w.days[dk] || [];
+                if (ids.length === 0) return;
+                const occMap = {};
+                ids.forEach(wid => {
+                    const occIdx = occMap[wid] || 0;
+                    occMap[wid] = occIdx + 1;
+                    planned++;
+                    const st = getPlanStatus(wid, date, occIdx);
+                    if (st.status === 'done') done++;
+                });
+            });
+        });
+    });
+    return { planned, done, pct: planned > 0 ? Math.round(done / planned * 100) : 0 };
+}
+function getWeekValue(startKey, metric) {
+    const records = getWeekRecords(startKey);
+    if (metric === 'duration') return Math.round(records.reduce((s, r) => s + (r.totalDuration || 0), 0) / 60);
+    if (metric === 'count') return records.length;
+    if (metric === 'plan') { const st = getWeekPlanStats(startKey); return st.planned > 0 ? st.pct : 0; }
+    return Math.round(records.reduce((s, r) => s + (r.workTime || 0), 0) / 60);
+}
+function getWeekMetricUnit(metric) {
+    if (metric === 'count') return 'трен.';
+    if (metric === 'plan') return '%';
+    return 'мин';
+}
+
+function buildWeekWorkChart() {
+    try {
+        const metric = DB.settings.weekMetric || 'work';
+        const range = [4,8,12].includes(DB.settings.weekRange) ? DB.settings.weekRange : 8;
+        const unit = getWeekMetricUnit(metric);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const mondayThis = startOfWeekMonday(today);
+        const weeks = [];
+        for (let i = range - 1; i >= 0; i--) {
+            const start = addDays(mondayThis, -7 * i);
+            const startKey = formatDateKey(start);
+            const value = getWeekValue(startKey, metric);
+            weeks.push({ start, startKey, value, isCurrent: i === 0 });
+        }
+        const maxVal = Math.max(1, ...weeks.map(w => w.value));
+        const avg = weeks.length > 0 ? weeks.reduce((s, w) => s + w.value, 0) / weeks.length : 0;
+        const avgPct = Math.min(100, (avg / maxVal) * 100);
+
+        const barsHtml = weeks.map(w => {
+            const pct = Math.max(w.value > 0 ? 4 : 0, Math.round((w.value / maxVal) * 100));
+            const belowAvg = w.value < avg;
+            const fillCls = 'durations-bar-fill' + (w.isCurrent ? ' current-week' : '') + (belowAvg ? ' below-avg' : '') + (w.value <= 0 ? ' empty' : '');
+            const labelText = formatShortDate(w.start);
+            const ariaLabel = `${formatWeekRange(w.startKey)}: ${w.value} ${unit}`;
+            return `<div class="durations-bar${w.isCurrent ? ' current-week' : ''}" role="button" tabindex="0" aria-label="${ariaLabel}" data-week-start="${w.startKey}" onclick="showWeekActivityDetail('${w.startKey}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showWeekActivityDetail('${w.startKey}');}">
+                <div class="durations-bar-value">${w.value > 0 ? w.value : ''}</div>
+                <div class="${fillCls}" style="height:${pct}%;"></div>
+                <div class="durations-bar-label">${labelText}</div>
+            </div>`;
+        }).join('');
+
+        return `<div class="week-metric-row">
+            <select class="select" onchange="setWeekMetric(this.value)" aria-label="Метрика">
+                <option value="work" ${metric === 'work' ? 'selected' : ''}>💪 Работа</option>
+                <option value="duration" ${metric === 'duration' ? 'selected' : ''}>⏱ Длительность</option>
+                <option value="count" ${metric === 'count' ? 'selected' : ''}>🏋️ Тренировки</option>
+                <option value="plan" ${metric === 'plan' ? 'selected' : ''}>📋 План</option>
+            </select>
+            <select class="select" onchange="setWeekRange(this.value)" aria-label="Диапазон">
+                <option value="4" ${range === 4 ? 'selected' : ''}>4 нед.</option>
+                <option value="8" ${range === 8 ? 'selected' : ''}>8 нед.</option>
+                <option value="12" ${range === 12 ? 'selected' : ''}>12 нед.</option>
+            </select>
+        </div>
+        <div class="durations-chart" style="position:relative;">
+            ${avgPct > 0 ? `<div class="durations-avg-line" style="bottom:${avgPct}%;"><div class="durations-avg-label">сред. ${avg > 0 ? avg.toFixed(0) : 0} ${unit}</div></div>` : ''}
+            ${barsHtml}
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--muted); margin-top:6px;">
+            <span>Нажмите на столбик, чтобы увидеть детали недели</span>
+            <span>${range} нед.</span>
+        </div>`;
+    } catch(e) { console.error('[buildWeekWorkChart]', e); return '<div style="color:var(--muted); font-size:0.85rem;">Не удалось построить график</div>'; }
+}
+
+function showWeekActivityDetail(startKey) {
+    try {
+        const start = parseDateKey(startKey); start.setHours(0,0,0,0);
+        const end = addDays(start, 6);
+        const records = getWeekRecords(startKey).sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        const planStats = getWeekPlanStats(startKey);
+        const totalDuration = records.reduce((s, r) => s + (r.totalDuration || 0), 0);
+        const totalWork = records.reduce((s, r) => s + (r.workTime || 0), 0);
+        const totalWarmup = records.reduce((s, r) => s + (r.warmupSeconds || 0), 0);
+        const title = formatWeekRange(startKey) + ' ' + start.getFullYear();
+        let rowsHtml = '';
+        if (records.length === 0) {
+            rowsHtml = `<div style="text-align:center; color:var(--muted); padding:24px; font-size:0.9rem;">Тренировок на этой неделе нет</div>`;
+        } else {
+            rowsHtml = records.map(r => {
+                const startT = new Date(r.startTime);
+                const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
+                return `<div class="history-card" style="margin:0;">
+                    <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}</div><div class="stats">📅 ${formatShortDate(startT)} · 🕐 ${formatClock(startT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
+                    ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:8px 10px; font-size:0.82rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+        let planHtml = '';
+        if (planStats.planned > 0) {
+            const planColor = planStats.pct >= 100 ? 'var(--accent)' : planStats.pct >= 50 ? 'var(--warn)' : 'var(--danger)';
+            planHtml = `<div class="history-summary-card" style="margin-bottom:0; padding:14px;">
+                <div class="history-summary-title">Выполнение плана</div>
+                <div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;">
+                    <div class="history-summary-item"><div class="val" style="color:var(--accent);">${planStats.done}</div><div class="lbl">✅ выполнено</div></div>
+                    <div class="history-summary-item"><div class="val" style="color:var(--danger);">${planStats.planned - planStats.done}</div><div class="lbl">❌ пропущено</div></div>
+                    <div class="history-summary-item"><div class="val" style="color:${planColor};">${planStats.pct}%</div><div class="lbl">процент</div></div>
+                </div>
+            </div>`;
+        }
+        const summaryHtml = `<div class="history-summary-card" style="margin-bottom:0; padding:14px;">
+            <div class="history-summary-title">Итоги недели</div>
+            <div class="history-summary-row" style="margin-top:0; padding-top:0; border-top:none;">
+                <div class="history-summary-item"><div class="val">${records.length}</div><div class="lbl">🏋️ тренировок</div></div>
+                <div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalDuration))}</div><div class="lbl">⏱ общее</div></div>
+                <div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWork))}</div><div class="lbl">💪 работа</div></div>
+                ${totalWarmup > 0 ? `<div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWarmup))}</div><div class="lbl">🔥 разминка</div></div>` : ''}
+            </div>
+        </div>`;
+        const ov = document.createElement('div');
+        ov.className = 'notif-side-overlay';
+        ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 85vh;">
+            <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+            <h2 class="sheet-title">${title}</h2>
+            <div style="color:var(--muted); font-size:0.82rem; text-align:center; flex-shrink:0;">${formatShortDate(start)} – ${formatShortDate(end)}</div>
+            <div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right: 4px;">
+                ${summaryHtml}
+                ${planHtml}
+                <div style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-top:4px;">Тренировки</div>
+                ${rowsHtml}
+            </div>
+            <div class="sheet-fixed-bottom" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
+                <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
+            </div>
+        </div>`;
+        document.body.appendChild(ov);
+        setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+        ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    } catch(e) { console.error('[showWeekActivityDetail]', e); }
+}
+// ==== /Работа по неделям (Activity) ====
 
 let exitProtectionActive = false;
 function enableExitProtection() { if (exitProtectionActive) return; exitProtectionActive = true; try { history.pushState({ ftProtected: true, ts: Date.now() }, '', location.href); } catch(e) {} }
@@ -3415,22 +3601,6 @@ function buildTimeOfDayHeatmap() {
         </div>`;
     } catch(e) { console.error('[buildTimeOfDayHeatmap]', e); return ''; }
 }
-function buildWeekDurationsChart() {
-    try {
-        const weeks = [];
-        const today = new Date(); today.setHours(0,0,0,0);
-        for (let i = 7; i >= 0; i--) {
-            const wStart = addDays(startOfWeekMonday(today), -7 * i);
-            const wEnd = addDays(wStart, 7);
-            const records = DB.history.filter(r => { try { const d = new Date(r.startTime); return d >= wStart && d < wEnd; } catch(e) { return false; } });
-            const totalMin = Math.round(records.reduce((s, r) => s + (r.workTime || 0), 0) / 60);
-            weeks.push({ start: wStart, totalMin: isFinite(totalMin) ? totalMin : 0 });
-        }
-        const maxMin = Math.max(1, ...weeks.map(w => w.totalMin));
-        return `<div class="durations-chart">${weeks.map(w => { const pct = Math.max(2, Math.round((w.totalMin / maxMin) * 100)); return `<div class="durations-bar" title="${w.totalMin} мин"><div class="durations-bar-fill" style="height: ${pct}%;"></div><div class="durations-bar-label">${w.totalMin > 0 ? w.totalMin : ''}</div></div>`; }).join('')}</div>
-        <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--muted); margin-top:4px;"><span>8 нед. назад</span><span>Сейчас</span></div>`;
-    } catch(e) { console.error('[buildWeekDurationsChart]', e); return ''; }
-}
 function getBestHours() {
     try {
         const hourBuckets = new Array(24).fill(0);
@@ -3456,7 +3626,7 @@ function renderActivity() {
         const weekGraphBody = `<div class="week-graph">${buildWeekGraph()}</div><div style="color:var(--muted); font-size:0.75rem; text-align:center; margin-top:8px;">минут работы по дням</div>`;
         const heatmapBody = `<div class="heatmap-grid">${buildHeatmap30()}</div><div class="heatmap-legend"><span>меньше</span><div class="heatmap-legend-box" style="background:var(--card-2);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.25);"></div><div class="heatmap-legend-box" style="background:rgba(167,139,250,0.5);"></div><div class="heatmap-legend-box" style="background:var(--primary);"></div><span>больше</span></div>`;
         const timeOfDayBody = buildTimeOfDayHeatmap();
-        const weeksBody = buildWeekDurationsChart();
+        const weeksBody = buildWeekWorkChart();
 
         let bestHourBody = '';
         if (bestHour >= 0) {
@@ -6050,7 +6220,8 @@ async function resetAllSettings() {
         lastNotifAutoShow: '', snoozeDuration: 2, fontSizeMode: 'normal',
         highContrast: false, compactWorkouts: false, streakGuard: true, streakGuardHour: 18,
         weeklyDigest: true, quietHours: false, quietHoursStart: 22, quietHoursEnd: 8,
-        programsCalendarCollapsed: false, builtinTemplatesCollapsed: false, soundMode: 'beep'
+        programsCalendarCollapsed: false, builtinTemplatesCollapsed: false, soundMode: 'beep',
+        weekMetric: 'work', weekRange: 8
     };
     saveDB('settings');
     applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -6315,6 +6486,8 @@ function importData(event) {
             if (typeof DB.settings.quietHoursEnd !== 'number') DB.settings.quietHoursEnd = 8;
             if (typeof DB.settings.programsCalendarCollapsed !== 'boolean') DB.settings.programsCalendarCollapsed = false;
             if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
+            if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
+            if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
             saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
             validateAndMigrateDB();
             applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
