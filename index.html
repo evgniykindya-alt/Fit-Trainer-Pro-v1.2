@@ -619,6 +619,17 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 #programs-list > .card { margin-top: 8px; }
 /* ==== ФИКС: жёстко центрируем заголовок на экране тренировки ==== */
 #screen-run .top-bar h1#run-title { flex: 1 1 auto; text-align: center; margin: 0; padding: 0 4px; }
+
+/* ==== ФИКС iOS PWA: отступ сверху и снизу у шторок ==== */
+.notif-side-sheet {
+    margin-top: max(8px, env(safe-area-inset-top, 20px));
+    margin-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    max-height: calc(100vh - max(16px, env(safe-area-inset-top, 20px) * 2));
+}
+.notif-side-overlay {
+    padding-top: max(0px, env(safe-area-inset-top, 20px));
+    padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+}
 </style>
 </head>
 <body>
