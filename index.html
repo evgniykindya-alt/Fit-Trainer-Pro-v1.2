@@ -2293,15 +2293,61 @@ let activityExercisePeriod = 30;
 let activityExerciseMetric = 'max';
 let activityTableSort = 'date-desc';
 
+// ФИКС: подтягиваем имена из тренировки, даже если в старой записи их нет
+function ensureExerciseNamesForRecord(r) {
+    if (!r || typeof r !== 'object') return [];
+    if (Array.isArray(r.exerciseNames) && r.exerciseNames.length > 0) return r.exerciseNames;
+    const w = r.workoutId ? DB.workouts.find(x => x.id === r.workoutId) : null;
+    if (!w || !Array.isArray(w.exercises)) return [];
+    const exEls = w.exercises.filter(e => e && e.kind === 'exercise');
+    if (exEls.length === 0) return [];
+    let names = [];
+    if (Array.isArray(r.exerciseOriginalIndices) && r.exerciseOriginalIndices.length) {
+        r.exerciseOriginalIndices.forEach(i => {
+            const el = w.exercises[i];
+            names.push(el && el.kind === 'exercise' ? (el.name || '') : '');
+        });
+    }
+    if (names.filter(Boolean).length === 0) names = exEls.map(e => e.name || '');
+    if (Array.isArray(r.exerciseTimes) && r.exerciseTimes.length > 0) {
+        if (names.length > r.exerciseTimes.length) names = names.slice(0, r.exerciseTimes.length);
+        while (names.length < r.exerciseTimes.length) names.push('');
+    }
+    r.exerciseNames = names;
+    return names;
+}
+
+// ФИКС: подтягиваем типы из тренировки, если в старой записи их нет
+function ensureExerciseTypesForRecord(r) {
+    if (!r || typeof r !== 'object') return null;
+    const names = r.exerciseNames || [];
+    if (Array.isArray(r.exerciseTypes) && r.exerciseTypes.length === names.length) return r.exerciseTypes;
+    const w = r.workoutId ? DB.workouts.find(x => x.id === r.workoutId) : null;
+    if (!w || !Array.isArray(w.exercises)) return null;
+    const origIdxs = getExerciseOriginalIndices(r);
+    const types = [];
+    let ok = true;
+    for (let i = 0; i < names.length; i++) {
+        const origIdx = origIdxs[i] !== undefined ? origIdxs[i] : i;
+        const el = w.exercises[origIdx];
+        if (el && el.kind === 'exercise') {
+            types.push(el.type === 'timer' ? 'time' : (el.type === 'sets' && el.setMode === 'time' ? 'time' : 'reps'));
+        } else {
+            types.push(null); ok = false;
+        }
+    }
+    if (ok) { r.exerciseTypes = types; return types; }
+    return null;
+}
+
 function getExerciseUniqueNames() {
     const seen = new Set();
     (DB.history || []).forEach(r => {
-        if (Array.isArray(r.exerciseNames)) {
-            r.exerciseNames.forEach(n => {
-                const name = (n || '').trim();
-                if (name) seen.add(name);
-            });
-        }
+        const names = ensureExerciseNamesForRecord(r);
+        names.forEach(n => {
+            const name = (n || '').trim();
+            if (name) seen.add(name);
+        });
     });
     return [...seen].sort((a, b) => a.localeCompare(b, 'ru'));
 }
@@ -2318,11 +2364,12 @@ function getExerciseProgressData(exName, periodDays, metric) {
         try { ts = new Date(r.startTime).getTime(); } catch(e) { return; }
         if (!ts || isNaN(ts)) return;
         if (cutoff && ts < cutoff) return;
-        const names = r.exerciseNames || [];
+        const names = ensureExerciseNamesForRecord(r);
+        if (!names || names.length === 0) return;
         const origIdxs = getExerciseOriginalIndices(r);
         const times = r.exerciseTimes || [];
         const sr = r.setResults || {};
-        const types = getExerciseTypes(r);
+        const types = ensureExerciseTypesForRecord(r);
         let exIdx = -1;
         for (let i = 0; i < names.length; i++) {
             if (normalizeExerciseName(names[i]) === targetNorm) { exIdx = i; break; }
