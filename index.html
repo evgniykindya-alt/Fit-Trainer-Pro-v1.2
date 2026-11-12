@@ -1223,6 +1223,8 @@ async function importDataFromJson(text) {
         if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
         if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
         if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
+        if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
+        if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
         saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
         validateAndMigrateDB();
         applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -1425,7 +1427,9 @@ DB.settings = Object.assign({
     programsCalendarCollapsed: false,
     builtinTemplatesCollapsed: false,
     weekMetric: 'work',
-    weekRange: 8
+    weekRange: 8,
+    homeStreakCollapsed: false,
+    homePlanCollapsed: false
 }, DB.settings);
 if ('announceConfirm' in DB.settings) delete DB.settings.announceConfirm;
 if (!Array.isArray(DB.settings.hiddenBuiltins)) DB.settings.hiddenBuiltins = [];
@@ -1459,6 +1463,8 @@ if (typeof DB.settings.programsCalendarCollapsed !== 'boolean') DB.settings.prog
 if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
 if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
 if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
+if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
+if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
 if (!Array.isArray(DB.measurements)) DB.measurements = [];
 const HIDEABLE_MENU_KEYS = ['templates','programs','activity','history','measurements'];
 if (!Array.isArray(DB.settings.hiddenMenuItems)) DB.settings.hiddenMenuItems = [];
@@ -1951,7 +1957,6 @@ function validateAndMigrateDB() {
                 if (!w.startDate || typeof w.startDate !== 'string' || !w.startDate.match(/^\d{4}-\d{2}-\d{2}$/)) { w.startDate = formatDateKey(startOfWeekMonday(new Date())); migrated = true; }
                 if (!w.days || typeof w.days !== 'object') { w.days = { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }; migrated = true; }
                 else { DAY_KEYS.forEach(k => { if (!Array.isArray(w.days[k])) { w.days[k] = w.days[k] ? [w.days[k]] : []; migrated = true; } }); }
-                // Миграция deloadDays
                 if (!w.deloadDays || typeof w.deloadDays !== 'object') { w.deloadDays = {}; migrated = true; }
                 DAY_KEYS.forEach(k => { if (typeof w.deloadDays[k] !== 'boolean') { w.deloadDays[k] = false; migrated = true; } });
             });
@@ -1960,13 +1965,11 @@ function validateAndMigrateDB() {
 
     if (migrated) { saveDB('workouts'); saveDB('templates'); saveDB('programs'); }
 
-    // Валидация порядка и свёрнутости карточек активности
     if (!DB.settings.accordions || typeof DB.settings.accordions !== 'object') DB.settings.accordions = {};
     if (!Array.isArray(DB.settings.accordions.activityOrder)) DB.settings.accordions.activityOrder = [...ACTIVITY_CARDS_DEFAULT];
     if (!DB.settings.accordions.activityCollapsed || typeof DB.settings.accordions.activityCollapsed !== 'object') DB.settings.accordions.activityCollapsed = {};
     ensureActivityOrderSanity();
 
-    // Backfill exerciseNames для старых записей (однократно)
     const MIGRATION_KEY = 'ft_backfill_exnames_v1';
     try {
         if (!localStorage.getItem(MIGRATION_KEY)) {
@@ -2637,7 +2640,7 @@ function showWeekActivityDetail(startKey) {
                 const startT = new Date(r.startTime);
                 const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
                 return `<div class="history-card" style="margin:0;">
-                    <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}</div><div class="stats">📅 ${formatShortDate(startT)} · 🕐 ${formatClock(startT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
+                    <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">📅 ${formatShortDate(startT)} · 🕐 ${formatClock(startT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
                     ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:8px 10px; font-size:0.82rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
                 </div>`;
             }).join('');
@@ -2967,9 +2970,10 @@ function getActiveNotifications() {
         DB.programs.forEach(p => {
             const week = getActiveWeek(p, new Date());
             if (!week) return;
+            const isDeloadDay = !!(week.deloadDays && week.deloadDays[dayKey]);
             (week.days[dayKey] || []).forEach(wid => {
                 const w = DB.workouts.find(x => x.id === wid);
-                if (w) todays.push({ workout: w, program: p, isDeload: !!(week.deloadDays && week.deloadDays[dayKey]) });
+                if (w) todays.push({ workout: w, program: p, isDeload: isDeloadDay });
             });
         });
         const todayHistory = DB.history.filter(r => formatDateKey(new Date(r.startTime)) === todayKey);
@@ -3561,6 +3565,17 @@ function saveNewOrder() {
     DB[dbKey] = ro; saveDB(dbKey);
 }
 
+function toggleHomeStreak() {
+    DB.settings.homeStreakCollapsed = !DB.settings.homeStreakCollapsed;
+    saveDB('settings');
+    renderStreakBanner();
+}
+function toggleHomePlan() {
+    DB.settings.homePlanCollapsed = !DB.settings.homePlanCollapsed;
+    saveDB('settings');
+    renderHomeTodayBanner();
+}
+
 function renderHomeTodayBanner() {
     const banner = document.getElementById('home-today-banner');
     if (!banner) return;
@@ -3581,8 +3596,20 @@ function renderHomeTodayBanner() {
         const pending = [];
         for (const t of todays) { const id = t.workout.id; if ((tempCounts[id] || 0) > 0) tempCounts[id]--; else pending.push(t); }
         if (pending.length === 0) {
+            const isCollapsed = !!DB.settings.homePlanCollapsed;
+            const icon = isCollapsed
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--muted);"><polyline points="6 9 12 15 18 9"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--muted);"><polyline points="18 15 12 9 6 15"/></svg>';
             banner.style.display = 'block';
-            banner.innerHTML = `<div class="card" style="border:1px solid var(--accent);"><div style="color:var(--accent); font-size:0.85rem; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; font-weight:600;">🎉 Всё по плану!</div><div style="color:var(--muted); font-size:0.85rem;">${todays.length} ${pluralWorkouts(todays.length)} выполнено</div></div>`;
+            banner.innerHTML = `<div class="card" style="border:1px solid var(--accent); padding: 12px 16px; margin-bottom: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleHomePlan()">
+                    <div>
+                        <div style="color:var(--accent); font-size:0.85rem; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; font-weight:600;">🎉 Всё по плану!</div>
+                        <div style="color:var(--muted); font-size:0.85rem;">${todays.length} ${pluralWorkouts(todays.length)} выполнено</div>
+                    </div>
+                    <button class="icon-toggle-btn" style="width:32px; height:32px; border:none; background:transparent;">${icon}</button>
+                </div>
+            </div>`;
             return;
         }
         if (homeSelectedExerciseIndex >= pending.length) homeSelectedExerciseIndex = 0;
@@ -3591,16 +3618,26 @@ function renderHomeTodayBanner() {
         const currentWorkout = current.workout;
         const showArrows = pending.length > 1;
         const deloadBadge = current.isDeload ? `<div style="color:var(--warn); font-size:0.78rem; font-weight:700; text-align:center; margin-bottom:8px;">🏷 РАЗГРУЗОЧНЫЙ ДЕНЬ</div>` : '';
+        const isCollapsed = !!DB.settings.homePlanCollapsed;
+        const icon = isCollapsed
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="6 9 12 15 18 9"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="18 15 12 9 6 15"/></svg>';
+        
         banner.style.display = 'block';
-        banner.innerHTML = `<div class="home-hero">
-            <div class="subtitle">📅 ${DAY_NAMES_FULL[todayKey]} · Тренировка ${homeSelectedExerciseIndex + 1} из ${pending.length}</div>
-            ${deloadBadge}
-            <div class="home-title-row">
-                ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(-1)" aria-label="Предыдущее упражнение">‹</button>` : `<div class="home-nav-spacer"></div>`}
-                <div class="title">${escapeHtml(currentWorkout.name)}</div>
-                ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(1)" aria-label="Следующее упражнение">›</button>` : `<div class="home-nav-spacer"></div>`}
+        banner.innerHTML = `<div class="home-hero" style="margin-top:0;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div class="subtitle" style="margin-bottom:0;">📅 ${DAY_NAMES_FULL[todayKey]} · Тренировка ${homeSelectedExerciseIndex + 1} из ${pending.length}</div>
+                <button class="icon-toggle-btn" onclick="toggleHomePlan()" style="border:none; background:transparent; padding:0; width:auto; height:auto;">${icon}</button>
             </div>
-            <button class="btn accent" onclick="startWorkout(${currentWorkout.id}, ${current.isDeload || false})" style="margin:0;">▶ Начать</button>
+            <div style="display: ${isCollapsed ? 'none' : 'block'};">
+                ${deloadBadge}
+                <div class="home-title-row" style="margin-top:10px;">
+                    ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(-1)" aria-label="Предыдущее упражнение">‹</button>` : `<div class="home-nav-spacer"></div>`}
+                    <div class="title">${escapeHtml(currentWorkout.name)}</div>
+                    ${showArrows ? `<button class="home-nav-arrow" onclick="cycleHomeExercise(1)" aria-label="Следующее упражнение">›</button>` : `<div class="home-nav-spacer"></div>`}
+                </div>
+                <button class="btn accent" onclick="startWorkout(${currentWorkout.id}, ${current.isDeload || false})" style="margin:0;">▶ Начать</button>
+            </div>
         </div>`;
     } catch(e) { banner.style.display = 'none'; }
 }
@@ -3671,12 +3708,20 @@ function renderStreakBanner() {
         const dates = getTrainingDates();
         if (dates.size === 0) { el.innerHTML = ''; return; }
         const s = calculateStreak(dates), r = calculateRecordStreak(dates);
-        el.innerHTML = `<div class="streak-banner" onclick="showScreen('screen-activity')">
-            <div class="streak-banner-top">
+        const isCollapsed = !!DB.settings.homeStreakCollapsed;
+        const icon = isCollapsed
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="6 9 12 15 18 9"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="18 15 12 9 6 15"/></svg>';
+        
+        el.innerHTML = `<div class="streak-banner" onclick="toggleHomeStreak()">
+            <div class="streak-banner-top" style="margin-bottom:0;">
                 <div class="streak-banner-title"><span class="fire">🔥</span> ${s} ${pluralDays(s)} подряд</div>
-                <div class="streak-banner-record">Рекорд: ${r}</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="streak-banner-record">Рекорд: ${r}</div>
+                    <button class="icon-toggle-btn" style="border:none; background:transparent; padding:0; width:auto; height:auto;" aria-label="${isCollapsed ? 'Развернуть' : 'Свернуть'}">${icon}</button>
+                </div>
             </div>
-            <div class="streak-banner-grid">${buildLast30DaysGrid()}</div>
+            <div class="streak-banner-grid" style="display: ${isCollapsed ? 'none' : 'grid'};">${buildLast30DaysGrid()}</div>
         </div>`;
     } catch(e) { el.innerHTML = ''; }
 }
@@ -6407,7 +6452,8 @@ async function resetAllSettings() {
         highContrast: false, compactWorkouts: false, streakGuard: true, streakGuardHour: 18,
         weeklyDigest: true, quietHours: false, quietHoursStart: 22, quietHoursEnd: 8,
         programsCalendarCollapsed: false, builtinTemplatesCollapsed: false, soundMode: 'beep',
-        weekMetric: 'work', weekRange: 8
+        weekMetric: 'work', weekRange: 8,
+        homeStreakCollapsed: false, homePlanCollapsed: false
     };
     saveDB('settings');
     applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -6674,6 +6720,8 @@ function importData(event) {
             if (typeof DB.settings.builtinTemplatesCollapsed !== 'boolean') DB.settings.builtinTemplatesCollapsed = false;
             if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
             if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
+            if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
+            if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
             saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
             validateAndMigrateDB();
             applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
