@@ -385,10 +385,10 @@ details[open] summary::after { transform: rotate(180deg); }
 .history-summary-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
 .history-summary-big { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; }
 .history-summary-big-sub { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
-.history-summary-row { display: flex; justify-content: space-around; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(167,139,250,0.2); }
-.history-summary-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.history-summary-row { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(167,139,250,0.2); flex-wrap: wrap; gap: 10px 6px; }
+.history-summary-item { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 60px; }
 .history-summary-item .val { font-size: 1.05rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-.history-summary-item .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.history-summary-item .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; text-align: center; }
 .preview-exercise { background: var(--card-2); border-radius: var(--r-sm); padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
 .preview-exercise.rest { background: var(--card-2); border-left: 3px solid var(--rest); }
 .preview-exercise.water { background: var(--water-soft); border-left: 3px solid var(--water); }
@@ -3074,11 +3074,12 @@ function openNotifCenter() {
         if (plans.length > 0) {
             html += `<div class="notif-section-title">📅 Планы на сегодня</div>`;
             plans.forEach((p, idx) => {
-                const deloadBadge = p.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px; margin-left:4px;">РАЗГРУЗКА</span>` : '';
+                // ФИКС: бейдж "Разгрузка" перенесен на новую строку
+                const deloadBadge = p.isDeload ? `<div style="margin-top:4px;"><span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px; display:inline-block;">РАЗГРУЗКА</span></div>` : '';
                 if (p.dismissed) {
-                    html += `<div class="notif-item disabled"><div class="notif-status" style="color:var(--muted); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}${deloadBadge}</div><div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${p.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px;border-radius:10px; font-weight:700;">🔔</button></div>`;
+                    html += `<div class="notif-item disabled"><div class="notif-status" style="color:var(--muted); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}</div>${deloadBadge}<div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${p.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px;border-radius:10px; font-weight:700;">🔔</button></div>`;
                 } else {
-                    html += `<div class="notif-item"><div class="notif-status" style="color:var(--primary); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(p.program.name)}</div></div><button class="icon-btn" onclick="notifStartPlan(${p.workout.id}, this, ${p.isDeload || false})" aria-label="Начать" style="background:var(--accent); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">▶</button></div>`;
+                    html += `<div class="notif-item"><div class="notif-status" style="color:var(--primary); font-weight:700;">${idx + 1}.</div><div class="notif-body"><div class="notif-name">${escapeHtml(p.workout.name)}</div>${deloadBadge}<div class="notif-sub" style="margin-top:4px;">📅 ${escapeHtml(p.program.name)}</div></div><button class="icon-btn" onclick="notifStartPlan(${p.workout.id}, this, ${p.isDeload || false})" aria-label="Начать" style="background:var(--accent); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">▶</button></div>`;
                 }
             });
         }
@@ -3570,6 +3571,7 @@ function saveNewOrder() {
     DB[dbKey] = ro; saveDB(dbKey);
 }
 
+// ФИКС: Клик по заголовку открывает активность, клик по стрелке - сворачивает.
 function toggleHomeStreak() {
     DB.settings.homeStreakCollapsed = !DB.settings.homeStreakCollapsed;
     saveDB('settings');
@@ -3705,6 +3707,8 @@ function buildLast30DaysGrid() {
     }
     return html;
 }
+
+// ФИКС: Стрик-баннер теперь кликабельный (открывает Активность), а стрелочка сворачивает.
 function renderStreakBanner() {
     const el = document.getElementById('streak-banner-home');
     if (!el) return;
@@ -3718,12 +3722,12 @@ function renderStreakBanner() {
             ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="6 9 12 15 18 9"/></svg>'
             : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="stroke:var(--text);"><polyline points="18 15 12 9 6 15"/></svg>';
         
-        el.innerHTML = `<div class="streak-banner" onclick="toggleHomeStreak()">
+        el.innerHTML = `<div class="streak-banner" onclick="showScreen('screen-activity')">
             <div class="streak-banner-top" style="margin-bottom:0;">
                 <div class="streak-banner-title"><span class="fire">🔥</span> ${s} ${pluralDays(s)} подряд</div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div class="streak-banner-record">Рекорд: ${r}</div>
-                    <button class="icon-toggle-btn" style="border:none; background:transparent; padding:0; width:auto; height:auto;" aria-label="${isCollapsed ? 'Развернуть' : 'Свернуть'}">${icon}</button>
+                    <button class="icon-toggle-btn" onclick="event.stopPropagation(); toggleHomeStreak();" style="border:none; background:transparent; padding:0; width:auto; height:auto;" aria-label="${isCollapsed ? 'Развернуть' : 'Свернуть'}">${icon}</button>
                 </div>
             </div>
             <div class="streak-banner-grid" style="display: ${isCollapsed ? 'none' : 'grid'};">${buildLast30DaysGrid()}</div>
@@ -4120,7 +4124,7 @@ function renderWorkoutsList() {
         return `<div class="workout-item" data-id="${w.id}">
             <div class="workout-name">${escapeHtml(w.name || 'Без названия')}</div>
             <div class="workout-meta-row"><div class="workout-meta">${exCount} упр. · ~${totalMin} мин всего</div><div class="workout-actions"><button class="icon-btn" onclick="showPreview(${w.id})" title="Просмотр" aria-label="Просмотр">👁</button><button class="icon-btn" onclick="duplicateWorkout(${w.id})" title="Копия" aria-label="Дублировать">📋</button><button class="icon-btn" onclick="openEditor(${w.id}, false)" title="Редактировать" aria-label="Редактировать">✏️</button><button class="icon-btn delete" onclick="deleteWorkoutById(${w.id})" title="Удалить" aria-label="Удалить">🗑</button></div></div>
-            <button class="btn accent btn-start-workout" onclick="startWorkout(${w.id})">▶ Начать тренировку</button>
+            <button class="btn accent btn-start-workout" onclick="startWorkout(${w.id}, false)">▶ Начать тренировку</button>
         </div>`;
     }).join('');
     const allowDrag = (sortBy === 'custom' && !q && !workoutsSelectionMode);
@@ -5128,6 +5132,9 @@ async function startWorkout(id, isDeload) {
         // ФИКС: возвращаем ⋮ и центрирование заголовка при старте новой тренировки
         _restoreRunHeaderForNewWorkout();
 
+        // ФИКС: проверяем, что isDeload строго true, а не truthy
+        isDeload = (isDeload === true);
+
         const saved = loadSavedRunState();
         if (saved && saved.workoutId && saved.phase && saved.phase !== 'finish') {
             const sw = DB.workouts.find(x => x.id === saved.workoutId);
@@ -5149,7 +5156,7 @@ async function startWorkout(id, isDeload) {
         if (!w) { showToast('⚠️ Тренировка не найдена'); return; }
         try { await requestNotificationPermission(); } catch(e) {}
         let workoutForRun = w;
-        let deloadPercent = 35;
+        let deloadPercent = isDeload ? 35 : 0;
         if (isDeload) {
             const ok = await customConfirm('🏷 Разгрузочный день.\n\nСнизить целевые показатели на 35%?\n\n(подходы и повторения будут уменьшены, тренировка не попадёт в рекорды)', { title: 'Разгрузка', okText: '✅ Снизить на 35%', cancelText: 'Тренироваться обычно', danger: false });
             if (ok) {
@@ -6256,7 +6263,7 @@ function saveWorkoutNote(recordId) {
         if (toggle) { toggle.style.display = 'block'; toggle.innerText = '📝 Редактировать заметку к тренировке'; }
     }
 }
-function repeatLastWorkout(workoutId) { runState = null; startWorkout(workoutId); }
+function repeatLastWorkout(workoutId) { runState = null; startWorkout(workoutId, false); }
 
 function renderHistory() { renderHistoryList(); renderHistoryStats(); renderHistoryRecords(); renderHistoryPrograms(); }
 function switchHistoryTab(tab, el) {
