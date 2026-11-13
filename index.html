@@ -595,7 +595,6 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .run-menu-item .r-icon { font-size:1.4rem; flex-shrink:0; }
 .run-menu-item.danger { color:var(--danger); }
 
-/* ==== Сворачиваемые карточки активности ==== */
 .activity-card { transition: background 0.15s; }
 .activity-card.dragging { opacity: 0.95; z-index: 9999; box-shadow: var(--shadow-lg); background: var(--card-2); border: 1px solid var(--primary); pointer-events: none; position: fixed !important; width: calc(100% - 32px) !important; left: 16px !important; top: 0 !important; margin: 0 !important; }
 .activity-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -605,7 +604,6 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .activity-card-header .icon-toggle-btn svg { width: 18px; height: 18px; }
 .activity-card-body { margin-top: 8px; }
 
-/* ==== Таблица прогресса по упражнениям ==== */
 .exercise-table-wrap { max-height: 200px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: var(--r-sm); border: 1px solid var(--border-soft); }
 .exercise-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .exercise-table th { position: sticky; top: 0; background: var(--card-2); color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-soft); }
@@ -614,13 +612,10 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .exercise-table .val-cell { font-weight: 700; color: var(--accent); white-space: nowrap; }
 .exercise-table .sets-row { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
 
-/* ==== ФИКС: отступ списка программ, чтобы форма не наезжала на кнопку ==== */
 #programs-list { margin-top: 14px; }
 #programs-list > .card { margin-top: 8px; }
-/* ==== ФИКС: жёстко центрируем заголовок на экране тренировки ==== */
 #screen-run .top-bar h1#run-title { flex: 1 1 auto; text-align: center; margin: 0; padding: 0 4px; }
 
-/* ==== ФИКС iOS PWA: отступ сверху и снизу у шторок ==== */
 .notif-side-sheet {
     margin-top: max(8px, env(safe-area-inset-top, 20px));
     margin-bottom: max(8px, env(safe-area-inset-bottom, 0px));
@@ -629,6 +624,36 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .notif-side-overlay {
     padding-top: max(0px, env(safe-area-inset-top, 20px));
     padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+}
+
+/* Стили для статистики упражнений */
+.stat-exercise {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+.stat-exercise-name {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+.stat-exercise-detail {
+    color: var(--blue);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.stat-exercise-time {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* Кнопки для календаря */
+.heatmap-cell, .streak-cell {
+    cursor: pointer;
+    transition: transform 0.1s, background 0.15s;
+}
+.heatmap-cell:active, .streak-cell:active {
+    transform: scale(0.9);
 }
 </style>
 </head>
@@ -2694,8 +2719,8 @@ function showWeekActivityDetail(startKey) {
             rowsHtml = records.map(r => {
                 const startT = new Date(r.startTime);
                 const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
-                return `<div class="history-card" style="margin:0;">
-                    <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">📅 ${formatShortDate(startT)} · 🕐 ${formatClock(startT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
+                return `<div class="history-card" style="margin:0; cursor:pointer;" onclick="openHistoryItemDetail(${r.id})">
+                    <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">📅 ${formatShortDate(startT)} · 🕐 ${formatClock(startT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="event.stopPropagation(); closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="event.stopPropagation(); shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
                     ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:8px 10px; font-size:0.82rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
                 </div>`;
             }).join('');
@@ -2946,6 +2971,7 @@ function saveRunState() {
         isMuted: runState.isMuted || false,
         isDeload: runState.isDeload || false,
         deloadPercent: runState.deloadPercent || 35,
+        removedExercises: runState._removedExercises || [],
         savedAt: savedAtTs
     };
     const serialized = JSON.stringify(snapshot);
@@ -3279,7 +3305,8 @@ function restoreRunState(saved) {
         workoutNameAnnounced: true, _flowStarting: false,
         isMuted: saved.isMuted || false,
         isDeload: saved.isDeload || false,
-        deloadPercent: saved.deloadPercent || 35
+        deloadPercent: saved.deloadPercent || 35,
+        _removedExercises: saved.removedExercises || []
     };
     document.getElementById('run-title').innerText = workout.name;
     acquireWakeLock(); enableExitProtection();
@@ -3929,8 +3956,8 @@ function showDayActivityDetail(key) {
         const wExists = r.workoutId && DB.workouts.find(w => w.id === r.workoutId);
         const startT = new Date(r.startTime);
         const endT = r.endTime ? new Date(r.endTime) : new Date(startT.getTime() + (r.totalDuration || 0) * 1000);
-        listHtml += `<div class="history-card" style="margin:0;">
-            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">🕐 ${formatClock(startT)} → ${formatClock(endT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
+        listHtml += `<div class="history-card" style="margin:0; cursor:pointer;" onclick="openHistoryItemDetail(${r.id})">
+            <div class="history-top"><div class="history-info"><div class="name">${escapeHtml(r.workoutName || 'Тренировка')}${r.isDeload ? ' 🏷' : ''}</div><div class="stats">🕐 ${formatClock(startT)} → ${formatClock(endT)} · ⏱ ${formatTime(r.totalDuration)} · 💪 ${formatTime(r.workTime)}</div></div><div class="history-actions">${wExists ? `<button class="icon-btn" onclick="event.stopPropagation(); closeTopSheet(); repeatLastWorkout(${r.workoutId})" title="Повторить" aria-label="Повторить">▶</button>` : ''}<button class="icon-btn" onclick="event.stopPropagation(); shareResult(${r.id})" title="Поделиться" aria-label="Поделиться">📤</button></div></div>
             ${r.workoutNote ? `<div style="background:var(--primary-soft); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:0.85rem;">📝 ${escapeHtml(r.workoutNote)}</div>` : ''}
         </div>`;
     });
@@ -5251,7 +5278,8 @@ async function startWorkout(id, isDeload) {
             workoutNameAnnounced: false, _flowStarting: false, isMuted: false,
             timerBeepPlayed: false,
             isDeload: deloadPercent > 0,
-            deloadPercent: deloadPercent
+            deloadPercent: deloadPercent,
+            _removedExercises: []
         };
         document.getElementById('run-title').innerText = w.name + (deloadPercent > 0 ? ' 🏷' : '');
         acquireWakeLock(); enableExitProtection();
@@ -6445,7 +6473,8 @@ function openHistoryItemDetail(id) {
         const isSkipped = t !== undefined && t !== null && t < 0;
         let setsInfo = '';
         if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
-        exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${i + 1}. ${escapeHtml(name || 'Упражнение')}${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
+        const setsColor = Array.isArray(sets) && sets.length ? 'var(--blue)' : 'inherit';
+        exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${i + 1}. ${escapeHtml(name || 'Упражнение')}</span><span style="color:${setsColor}; font-size:0.85rem; font-weight:600;">${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; margin-left:8px;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
     });
     let notesHtml = '';
     if (r.exerciseNotes && Object.keys(r.exerciseNotes).length > 0) {
@@ -6588,7 +6617,7 @@ function renderHistoryPrograms() {
         const doneOfTotal = d.items.filter(i => i.status === 'done').length;
         const counter = `<div style="font-size:0.75rem; color:var(--muted);">${doneOfTotal} из ${d.items.length}</div>`;
         const itemsHtml = d.items.map(i => {
-            if (i.status === 'done') return `<div style="color:var(--accent); padding:3px 0;">✅ ${escapeHtml(i.name)}${i.time ? ` <span style="color:var(--muted); font-size:0.8em;">(${i.time})</span>` : ''}</div>`;
+            if (i.status === 'done') return `<div style="color:var(--accent); padding:3px 0; cursor:pointer;" onclick="openHistoryItemDetail(${i.recordId})">✅ ${escapeHtml(i.name)}${i.time ? ` <span style="color:var(--muted); font-size:0.8em;">(${i.time})</span>` : ''}</div>`;
             if (i.status === 'missed') return `<div style="color:var(--danger); padding:3px 0;">❌ ${escapeHtml(i.name)}</div>`;
             return `<div style="color:var(--warn); padding:3px 0;">⏳ ${escapeHtml(i.name)}</div>`;
         }).join('');
@@ -7147,16 +7176,35 @@ function openRunMenu() {
     };
 }
 
+// ==== УЛУЧШЕННЫЙ РЕДАКТОР ОЧЕРЕДИ ТРЕНИРОВКИ С СОХРАНЕНИЕМ УДАЛЁННЫХ ====
 function openRunQueueEditor() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
 
-    const tempExercises = JSON.parse(JSON.stringify(runState.workout.exercises));
+    // Формируем рабочий список: текущие упражнения + удалённые
+    const tempExercises = [];
+    const removedMarkSet = new Set((runState._removedExercises || []).map(e => JSON.stringify(e)));
+    
+    // Сначала добавляем текущие
+    runState.workout.exercises.forEach((el, i) => {
+        const copy = JSON.parse(JSON.stringify(el));
+        copy._origIndex = i;
+        copy._removed = false;
+        tempExercises.push(copy);
+    });
+    
+    // Добавляем удалённые, помечая их
+    (runState._removedExercises || []).forEach((el, i) => {
+        const copy = JSON.parse(JSON.stringify(el));
+        copy._origIndex = -1;
+        copy._removed = true;
+        tempExercises.push(copy);
+    });
 
+    // Отмечаем выполненные (по exerciseTimes)
     let exCounter = 0;
     tempExercises.forEach((el, i) => {
-        el._origIndex = i;
-        if (el.kind === 'exercise') {
+        if (el.kind === 'exercise' && !el._removed) {
             const t = runState.exerciseTimes[exCounter];
             if (t !== undefined && t !== null) {
                 el._done = (t >= 0);
@@ -7166,7 +7214,7 @@ function openRunQueueEditor() {
         }
     });
     tempExercises.forEach((el, i) => {
-        if (el.kind === 'rest' && i < runState.index) {
+        if (el.kind === 'rest' && !el._removed && el._origIndex >= 0 && el._origIndex < runState.index) {
             el._done = true;
         }
     });
@@ -7199,11 +7247,11 @@ function openRunQueueEditor() {
         return tempExercises.map((el, i) => {
             if (!el) return '';
             let icon = '🏋️', name = el.name || 'Упражнение', sub = '';
-            const isCurrent = i === currentIdx;
+            const isCurrent = (i === currentIdx);
             const isDone = !!el._done;
             const isSkipped = !!el._skipped;
             const isRemoved = !!el._removed;
-            const isPast = i < currentIdx || isDone || isSkipped;
+            const isPast = (el._origIndex >= 0 && el._origIndex < runState.index) || isDone || isSkipped;
 
             if (el.kind === 'exercise') {
                 if (el.type === 'sets') sub = `${el.setsCount || 3}×${el.setMode === 'time' ? (el.setDuration || 45) + 'с' : (el.targetReps || 10) + 'п'}`;
@@ -7225,14 +7273,14 @@ function openRunQueueEditor() {
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
             let strike = '';
-            if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
-            if (isRemoved) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.5; background: var(--card-3);';
-
+			if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
+			if (isRemoved) strike = 'color: var(--muted); opacity: 0.6; background: var(--card-3);';
             let actionBtn = '';
-            if (isPast) {
-                actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; opacity:0.3; pointer-events:none;" aria-label="Заблокировано">✕</button>`;
-            } else if (isRemoved) {
+			
+            if (isRemoved) {
                 actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--accent); border-color:var(--accent); background:var(--accent-soft);" onclick="event.stopPropagation(); runQueueRestore(${i})" aria-label="Восстановить">✅</button>`;
+            } else if (isPast) {
+                actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; opacity:0.3; pointer-events:none;" aria-label="Заблокировано">✕</button>`;
             } else {
                 actionBtn = `
                     <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Вверх">↑</button>
@@ -7284,14 +7332,31 @@ function openRunQueueEditor() {
         }
     };
     window.applyRunQueue = function() {
-        const cleaned = tempExercises.filter(el => !el._removed).map(el => {
+        const active = [];
+        const removed = [];
+        tempExercises.forEach(el => {
+            if (el._removed) removed.push(el);
+            else active.push(el);
+        });
+        
+        // Очищаем от служебных полей
+        const cleanActive = active.map(el => {
             const c = Object.assign({}, el);
             delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
             return c;
         });
-        if (cleaned.length === 0) { showToast('Нельзя оставить пустую тренировку'); return; }
-        runState.workout.exercises = cleaned;
+        const cleanRemoved = removed.map(el => {
+            const c = Object.assign({}, el);
+            delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
+            return c;
+        });
         
+        if (cleanActive.length === 0) { showToast('Нельзя оставить пустую тренировку'); return; }
+        
+        runState.workout.exercises = cleanActive;
+        runState._removedExercises = cleanRemoved;
+        
+        // Вычисляем новый индекс
         let newIdx = 0;
         let count = 0;
         for (let k = 0; k < tempExercises.length; k++) {
@@ -7299,7 +7364,7 @@ function openRunQueueEditor() {
             if (!tempExercises[k]._removed) count++;
         }
         
-        runState.index = Math.max(0, Math.min(newIdx, cleaned.length - 1));
+        runState.index = Math.max(0, Math.min(newIdx, cleanActive.length - 1));
         saveRunState();
         resumeAfterClose();
         closeTopSheet();
@@ -7315,7 +7380,7 @@ function openRunQueueEditor() {
     ov.innerHTML = `<div class="notif-side-sheet" style="max-height: 88vh;">
         <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
         <h2 class="sheet-title">Порядок тренировки</h2>
-        <div style="color:var(--muted); font-size:0.8rem; text-align:center;">Текущее упражнение продолжится после применения. Выполненные пункты заблокированы.</div>
+        <div style="color:var(--muted); font-size:0.8rem; text-align:center;">Отменённые упражнения можно вернуть (галочка). Выполненные заблокированы.</div>
         <div id="run-queue-list" class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">${renderList()}</div>
         <div class="sheet-fixed-bottom" style="display:flex; flex-direction:column; gap:8px;">
             <button class="btn accent" onclick="applyRunQueue()">Применить</button>
