@@ -632,7 +632,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     margin-bottom: max(8px, env(safe-area-inset-bottom, 0px));
     max-height: calc(100vh - max(16px, env(safe-area-inset-top, 20px) * 2));
     overflow-y: auto;
-    overflow-x: hidden; /* ФИКС: убрана горизонтальная прокрутка */
+    overflow-x: hidden;
 }
 .notif-side-overlay {
     padding-top: max(0px, env(safe-area-inset-top, 20px));
@@ -653,13 +653,12 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     .current-exercise.very-long { font-size: 1.15rem; }
 }
 
-/* ФИКС: скрываем стандартный скроллбар в шторке уведомлений, чтобы не было полосы */
 .notif-side-sheet .sheet-scroll-area {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 .notif-side-sheet .sheet-scroll-area::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
 }
 </style>
 </head>
@@ -877,7 +876,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <button class="btn warn" id="warmup-pause-btn" onclick="toggleWarmupPause()">⏸ Пауза</button>
         <button class="btn accent" id="warmup-finish-early-btn" onclick="finishWarmupEarly()">✅ Закончить разминку</button>
         <button class="btn ghost" id="warmup-skip-btn" onclick="skipWarmupElement()" style="background:var(--card-2); color:var(--muted);">⏭ Пропустить разминку</button>
-        <button class="btn accent" id="warmup-confirm-btn" onclick="confirmWarmupFinished()" style="display:none;">✅ Готов</button>
+        <button class="btn accent" id="warmup-confirm-btn" onclick="confirmWarmupFinished()" style="display:none;">✅ Завершить разминку</button>
     </div>
     <div id="phase-work" style="display:none;">
         <div class="timer-ring-wrap">
@@ -2318,6 +2317,7 @@ let activityExerciseSelected = null;
 let activityExercisePeriod = 30;
 let activityExerciseMetric = 'max';
 let activityTableSort = 'date-desc';
+let activityExerciseWorkoutFilter = 'all';
 
 function ensureExerciseNamesForRecord(r) {
     if (!r || typeof r !== 'object') return [];
@@ -2364,9 +2364,11 @@ function ensureExerciseTypesForRecord(r) {
     return null;
 }
 
-function getExerciseUniqueNames() {
+function getExerciseUniqueNames(workoutFilter) {
     const seen = new Set();
+    const targetNorm = workoutFilter && workoutFilter !== 'all' ? String(workoutFilter) : null;
     (DB.history || []).forEach(r => {
+        if (targetNorm && String(r.workoutId) !== targetNorm && r.workoutName !== targetNorm) return;
         const names = ensureExerciseNamesForRecord(r);
         names.forEach(n => {
             const name = (n || '').trim();
@@ -2376,14 +2378,24 @@ function getExerciseUniqueNames() {
     return [...seen].sort((a, b) => a.localeCompare(b, 'ru'));
 }
 
+function getWorkoutUniqueNames() {
+    const seen = new Set();
+    (DB.history || []).forEach(r => {
+        if (r.workoutName) seen.add(r.workoutName);
+    });
+    return [...seen].sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
 function normalizeExerciseName(s) { return String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
 
-function getExerciseProgressData(exName, periodDays, metric) {
+function getExerciseProgressData(exName, periodDays, metric, workoutFilter) {
     const now = Date.now();
     const cutoff = periodDays ? now - periodDays * 24 * 60 * 60 * 1000 : 0;
     const result = [];
     const targetNorm = normalizeExerciseName(exName);
+    const targetWorkout = workoutFilter && workoutFilter !== 'all' ? String(workoutFilter) : null;
     (DB.history || []).forEach(r => {
+        if (targetWorkout && String(r.workoutId) !== targetWorkout && r.workoutName !== targetWorkout) return;
         let ts;
         try { ts = new Date(r.startTime).getTime(); } catch(e) { return; }
         if (!ts || isNaN(ts)) return;
@@ -2515,7 +2527,14 @@ function renderExerciseTable(records, sortBy) {
 }
 
 function renderActivityExerciseChart() {
-    const names = getExerciseUniqueNames();
+    const allWorkoutNames = getWorkoutUniqueNames();
+    if (allWorkoutNames.length === 0) {
+        return `<div style="text-align:center; color:var(--muted); padding:16px; font-size:0.85rem;">Пока нет данных по тренировкам.<br>Сделайте тренировку — здесь появится график прогресса.</div>`;
+    }
+    let names = getExerciseUniqueNames(activityExerciseWorkoutFilter);
+    if (names.length === 0 && activityExerciseWorkoutFilter !== 'all') {
+        names = getExerciseUniqueNames('all');
+    }
     if (names.length === 0) {
         return `<div style="text-align:center; color:var(--muted); padding:16px; font-size:0.85rem;">Пока нет данных по упражнениям.<br>Сделайте тренировку — здесь появится график прогресса.</div>`;
     }
@@ -2533,13 +2552,17 @@ function renderActivityExerciseChart() {
         { v: 'val-desc', t: 'Больше' }, { v: 'val-asc', t: 'Меньше' }
     ];
 
-    const recordsProbe = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod, activityExerciseMetric);
+    const recordsProbe = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod, activityExerciseMetric, activityExerciseWorkoutFilter);
     let isTimeType = false;
     if (recordsProbe.length > 0) {
         isTimeType = recordsProbe.every(r => r.type === 'time');
     }
     const metricDisabled = isTimeType;
 
+    const workoutSelectHtml = `<select class="select" style="margin:0;" onchange="activityExerciseWorkoutFilter=this.value; activityExerciseSelected=null; renderActivity();">
+        <option value="all" ${activityExerciseWorkoutFilter === 'all' ? 'selected' : ''}>🏋️ Все тренировки</option>
+        ${allWorkoutNames.map(n => `<option value="${escapeHtml(n)}" ${n === activityExerciseWorkoutFilter ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+    </select>`;
     const exSelectHtml = `<select class="select" style="margin:0;" onchange="activityExerciseSelected=this.value; renderActivity();">
         ${names.map(n => `<option value="${escapeHtml(n)}" ${n === activityExerciseSelected ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
     </select>`;
@@ -2558,7 +2581,7 @@ function renderActivityExerciseChart() {
     let compareHtml = '';
     try {
         if (recordsProbe.length > 0) {
-            const prev = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod * 2, activityExerciseMetric)
+            const prev = getExerciseProgressData(activityExerciseSelected, activityExercisePeriod * 2, activityExerciseMetric, activityExerciseWorkoutFilter)
                 .filter(r => r.date.getTime() < (Date.now() - activityExercisePeriod * 24 * 60 * 60 * 1000));
             if (prev.length > 0) {
                 const avgCur = recordsProbe.reduce((s, r) => s + r.value, 0) / recordsProbe.length;
@@ -2573,6 +2596,9 @@ function renderActivityExerciseChart() {
     } catch(e) {}
 
     return `
+        <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+            <div style="flex:1 1 100%;">${workoutSelectHtml}</div>
+        </div>
         <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
             <div style="flex:1 1 100%;">${exSelectHtml}</div>
             <div style="flex:1 1 100px;">${periodSelectHtml}</div>
@@ -5189,17 +5215,12 @@ function setRingDot(dotId, ringId, elapsedSec, cls) {
     const dot = document.getElementById(dotId);
     const ring = document.getElementById(ringId);
     if (!dot || !ring) return;
-    // Кольцо-прогресс скрываем, серое фоновое остаётся
     ring.style.display = 'none';
     dot.style.display = 'block';
     const seconds = Math.max(0, Math.floor(elapsedSec || 0));
-    // Отсчёт начинается сверху (12 часов), идёт по часовой стрелке.
-    // 6° на секунду, оборот за 60с. Вычитаем 90°, так как SVG повёрнут на -90°.
     const angle = (seconds * 6) + 90;
     dot.style.transform = `rotate(${angle}deg)`;
-    //dot.style.transformOrigin = '60px 60px';
     if (cls !== undefined) { try { dot.setAttribute('class', 'timer-ring-dot ' + cls); } catch(e) {} }
-    // Плавность: включаем transition только со второго кадра, чтобы не было прыжка при старте
     if (!dot._animReady) {
         dot.classList.add('no-anim');
         dot.getBoundingClientRect();
@@ -5913,7 +5934,7 @@ function updateTimersUI() {
                         speakCritical('осталось ' + rem + ' ' + pluralMinutes(rem));
                     } else if (isCountdown) {
                         const m = Math.max(1, Math.round(tt / 60));
-                        speakCritical(remainingMinutesText(m));
+                        speakCritical('осталось ' + remainingMinutesText(m));
                     } else {
                         const m = Math.max(1, Math.round(tt / 60));
                         speakCritical(elapsedMinutesText(m));
@@ -5934,7 +5955,6 @@ function updateTimersUI() {
             _updateSetTimeRing(el, t);
             hideRingDot('dot-work', 'ring-work');
         } else {
-            // СЕКУНДОМЕР (type === 'time' или sets/reps) — точка по кругу
             const elapsed = getCurrentElapsed('work');
             if (t) t.innerText = formatTime(elapsed);
             const paused = runState.workPaused || runState._menuOpen;
@@ -5945,7 +5965,6 @@ function updateTimersUI() {
     } else if (phase === 'warmup' && !runState.warmupFinished) {
         const el = document.getElementById('warmup-timer');
         if (runState.warmupMode === 'free') {
-            // РАЗМИНКА СВОБОДНО — точка по кругу
             const elapsed = getCurrentElapsed('warmup');
             if (el) el.innerText = formatTime(elapsed);
             const paused = runState.warmupPaused || runState._menuOpen;
@@ -6088,7 +6107,7 @@ function renderRun() {
             if (timer) { timer.classList.remove('done', 'overtime'); timer.classList.toggle('paused', !!runState.warmupPaused); }
             pauseBtn.style.display = 'block'; pauseBtn.innerText = runState.warmupPaused ? '▶ Продолжить' : '⏸ Пауза';
             finishEarlyBtn.style.display = 'none'; skipBtn.style.display = 'none';
-            confirmBtn.style.display = 'block'; confirmBtn.innerText = '✅ Готов';
+            confirmBtn.style.display = 'block'; confirmBtn.innerText = '✅ Завершить разминку';
         } else if (runState.warmupFinished) {
             phaseLabel.innerText = '✅ Разминка завершена';
             currentExEl.style.color = 'var(--accent)';
@@ -6130,7 +6149,12 @@ function renderRun() {
             finishText = '✅ Завершить упражнение';
             if (runState.timerFinished) { phaseLabel.innerText = '⏰ ВРЕМЯ ВЫШЛО'; phaseLabel.className = 'phase-label finished'; }
         }
-        pauseBtn.style.display = 'block';
+        // **Убираем кнопку паузы, если тип таймер и время вышло**
+        if (el.type === 'timer' && runState.timerFinished) {
+            pauseBtn.style.display = 'none';
+        } else {
+            pauseBtn.style.display = 'block';
+        }
         if (skipBtn) skipBtn.style.display = 'block';
         repsInfo.style.display = showReps ? 'block' : 'none';
         if (showReps) { const nReps = parseInt(targetText, 10) || 0; repsTarget.innerText = targetText + ' ' + pluralReps(nReps); }
@@ -6299,7 +6323,6 @@ function showFinishScreen() {
 
        const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
     if (runMenuBtn) {
-        // Вместо скрытия делаем его невидимым заполнителем (spacer), чтобы сохранить центровку заголовка
         runMenuBtn.style.visibility = 'hidden';
         runMenuBtn.style.pointerEvents = 'none';
         runMenuBtn.innerHTML = ''; 
