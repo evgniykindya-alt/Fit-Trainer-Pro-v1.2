@@ -3950,7 +3950,7 @@ function getPlanStatus(workoutId, date, occurrenceIndex = 0) {
         const records = DB.history
             .filter(r => r.workoutId === workoutId && formatDateKey(new Date(r.startTime)) === dateKey)
             .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-        if (occurrenceIndex < records.length) return { status: 'done', time: formatClock(new Date(records[occurrenceIndex].startTime)) };
+        if (occurrenceIndex < records.length) return { status: 'done', time: formatClock(new Date(records[occurrenceIndex].startTime)), recordId: records[occurrenceIndex].id };
         if (dateKey < todayKey) return { status: 'missed' };
         if (dateKey === todayKey) return { status: 'pending' };
         return { status: 'future' };
@@ -4469,8 +4469,14 @@ function showCalendarDay(year, month, day) {
             const icon = e.status.status === 'done' ? '✅' : e.status.status === 'missed' ? '❌' : '⏳'; 
             const deloadBadge = e.isDeload ? ` <span style="background:var(--warn); color:#0a0a10; font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px;">РАЗГРУЗКА</span>` : ''; 
             const isDone = e.status.status === 'done';
-            const startAction = isDone ? `showHistoryDetail(${e.wid})` : `closeTopSheet(); startWorkout(${e.wid}, ${!!e.isDeload})`;
-            return `<div class="notif-item" style="cursor:pointer;" onclick="${startAction}"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div><div style="font-size:1.2rem; color:var(--muted);">›</div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+            const recordId = e.status.recordId;
+            let action = '';
+            if (isDone && recordId) {
+                action = `openHistoryItemDetail(${recordId})`;
+            } else {
+                action = `closeTopSheet(); startWorkout(${e.wid}, ${!!e.isDeload})`;
+            }
+            return `<div class="notif-item" style="cursor:pointer;" onclick="${action}"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(e.wName)}${deloadBadge}</div><div class="notif-sub">📅 ${escapeHtml(e.program.name)}</div></div><div style="font-size:1.2rem; color:var(--muted);">›</div></div>`; }).join('')}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
         document.body.appendChild(ov);
         setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
         ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -6416,7 +6422,6 @@ function renderHistoryList() {
     }
 }
 
-// ==== Подробная статистика записи из истории ====
 function openHistoryItemDetail(id) {
     const r = DB.history.find(x => x.id === id);
     if (!r) { showToast('Запись не найдена'); return; }
@@ -7142,7 +7147,6 @@ function openRunMenu() {
     };
 }
 
-// ==== Улучшенный редактор очереди тренировки ====
 function openRunQueueEditor() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
@@ -7161,7 +7165,6 @@ function openRunQueueEditor() {
             exCounter++;
         }
     });
-    // Отмечаем пройденные отдых/воду, если мы уже прошли по индексу
     tempExercises.forEach((el, i) => {
         if (el.kind === 'rest' && i < runState.index) {
             el._done = true;
@@ -7199,7 +7202,7 @@ function openRunQueueEditor() {
             const isCurrent = i === currentIdx;
             const isDone = !!el._done;
             const isSkipped = !!el._skipped;
-            const isRemoved = !!el._removed; // Флаг удаления
+            const isRemoved = !!el._removed;
             const isPast = i < currentIdx || isDone || isSkipped;
 
             if (el.kind === 'exercise') {
@@ -7221,21 +7224,16 @@ function openRunQueueEditor() {
             else if (isDone) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">✓</span>`;
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
-            // Стили зачеркивания для выполненных / пропущенных / удаленных
             let strike = '';
             if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
             if (isRemoved) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.5; background: var(--card-3);';
 
-            // Кнопки управления
             let actionBtn = '';
             if (isPast) {
-                // Прошедшие заблокированы
                 actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; opacity:0.3; pointer-events:none;" aria-label="Заблокировано">✕</button>`;
             } else if (isRemoved) {
-                // Если удалено - показываем зеленую галочку для возврата
                 actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--accent); border-color:var(--accent); background:var(--accent-soft);" onclick="event.stopPropagation(); runQueueRestore(${i})" aria-label="Восстановить">✅</button>`;
             } else {
-                // Активные
                 actionBtn = `
                     <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Вверх">↑</button>
                     <button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem;" onclick="event.stopPropagation(); runQueueMove(${i},1)" ${i === tempExercises.length - 1 ? 'disabled' : ''} aria-label="Вниз">↓</button>
@@ -7275,7 +7273,6 @@ function openRunQueueEditor() {
             showToast('Нельзя удалить выполненное или текущее');
             return;
         }
-        // Вместо удаления ставим флаг
         tempExercises[i]._removed = true;
         refresh();
     };
@@ -7287,7 +7284,6 @@ function openRunQueueEditor() {
         }
     };
     window.applyRunQueue = function() {
-        // Фильтруем те, что не удалены
         const cleaned = tempExercises.filter(el => !el._removed).map(el => {
             const c = Object.assign({}, el);
             delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
@@ -7296,30 +7292,11 @@ function openRunQueueEditor() {
         if (cleaned.length === 0) { showToast('Нельзя оставить пустую тренировку'); return; }
         runState.workout.exercises = cleaned;
         
-        // Пересчитываем текущий индекс
-        // Находим элемент, который был текущим (по _origIndex)
-        const oldCurrent = tempExercises[currentIdx];
-        let newIdx = -1;
-        if (oldCurrent && !oldCurrent._removed) {
-            // Ищем его в очищенном массиве по ссылке на оригинал (через имя/тип, но проще - по индексу в исходном)
-            // Так как мы клонировали, то уникальность можно проверить по набору полей, но проще - найти по позиции
-            // Используем сохраненный _origIndex
-            const origIdx = oldCurrent._origIndex;
-            // Ищем элемент в cleaned, у которого нет _origIndex, но совпадает структура
-            // Проще: если старый текущий не удален, то его новый индекс - это количество элементов до него в tempExercises (не удаленных)
-            let count = 0;
-            for (let k = 0; k < currentIdx; k++) {
-                if (!tempExercises[k]._removed) count++;
-            }
-            newIdx = count;
-        } else {
-            // Если текущий удален, ставим индекс на первый не удаленный
-            let count = 0;
-            for (let k = 0; k <= currentIdx; k++) {
-                if (!tempExercises[k]._removed) break;
-                count++;
-            }
-            newIdx = Math.min(count, cleaned.length - 1);
+        let newIdx = 0;
+        let count = 0;
+        for (let k = 0; k < tempExercises.length; k++) {
+            if (k === currentIdx) { newIdx = count; break; }
+            if (!tempExercises[k]._removed) count++;
         }
         
         runState.index = Math.max(0, Math.min(newIdx, cleaned.length - 1));
