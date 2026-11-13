@@ -313,6 +313,13 @@ textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
 .timer-ring-fg.warn { stroke: var(--warn); }
 .timer-ring-fg.danger { stroke: var(--danger); }
 .timer-ring-fg.paused { stroke: var(--warn); }
+/* Точка-маркер секундомера */
+.timer-ring-dot { fill: var(--accent); transition: fill 0.2s, transform 0.5s linear; display: none; transform-box: view-box; transform-origin: 60px 60px; }
+.timer-ring-dot.work { fill: var(--accent); }
+.timer-ring-dot.warmup { fill: var(--primary); }
+.timer-ring-dot.paused { fill: var(--warn); }
+.timer-ring-dot.danger { fill: var(--danger); }
+.timer-ring-dot.no-anim { transition: none; }
 .big-timer { position: absolute; inset: 0; font-size: 3.2rem; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; display: flex; align-items: center; justify-content: center; }
 .big-timer.countdown { color: var(--warn); font-size: 8rem; }
 .big-timer.overtime { color: var(--danger); }
@@ -863,6 +870,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
             <svg class="timer-ring" viewBox="0 0 120 120">
                 <circle class="timer-ring-bg" cx="60" cy="60" r="54"></circle>
                 <circle class="timer-ring-fg warmup" id="ring-warmup" cx="60" cy="60" r="54"></circle>
+                <circle class="timer-ring-dot warmup" id="dot-warmup" cx="60" cy="6" r="5"></circle>
             </svg>
             <div class="big-timer warmup" id="warmup-timer">00:00</div>
         </div>
@@ -876,6 +884,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
             <svg class="timer-ring" viewBox="0 0 120 120">
                 <circle class="timer-ring-bg" cx="60" cy="60" r="54"></circle>
                 <circle class="timer-ring-fg work" id="ring-work" cx="60" cy="60" r="54"></circle>
+                <circle class="timer-ring-dot work" id="dot-work" cx="60" cy="6" r="5"></circle>
             </svg>
             <div class="big-timer" id="work-timer">00:00</div>
         </div>
@@ -5174,6 +5183,40 @@ function setRingProgress(ringId, pct, cls) {
     ring.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
     if (cls !== undefined) { try { ring.setAttribute('class', 'timer-ring-fg ' + cls); } catch(e) {} }
 }
+/* === СЕКУНДОМЕР-ТОЧКА === */
+const RING_RADIUS = 54;
+function setRingDot(dotId, ringId, elapsedSec, cls) {
+    const dot = document.getElementById(dotId);
+    const ring = document.getElementById(ringId);
+    if (!dot || !ring) return;
+    // Кольцо-прогресс скрываем, серое фоновое остаётся
+    ring.style.display = 'none';
+    dot.style.display = 'block';
+    const seconds = Math.max(0, Math.floor(elapsedSec || 0));
+    // Отсчёт начинается сверху (12 часов), идёт по часовой стрелке.
+    // 6° на секунду, оборот за 60с. Вычитаем 90°, так как SVG повёрнут на -90°.
+    const angle = ((seconds % 60) * 6) + 90;
+    dot.style.transform = `rotate(${angle}deg)`;
+    //dot.style.transformOrigin = '60px 60px';
+    if (cls !== undefined) { try { dot.setAttribute('class', 'timer-ring-dot ' + cls); } catch(e) {} }
+    // Плавность: включаем transition только со второго кадра, чтобы не было прыжка при старте
+    if (!dot._animReady) {
+        dot.classList.add('no-anim');
+        dot.getBoundingClientRect();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                dot.classList.remove('no-anim');
+                dot._animReady = true;
+            });
+        });
+    }
+}
+function hideRingDot(dotId, ringId) {
+    const dot = document.getElementById(dotId);
+    const ring = document.getElementById(ringId);
+    if (dot) { dot.style.display = 'none'; dot._animReady = false; dot.classList.remove('no-anim'); }
+    if (ring) ring.style.display = '';
+}
 function startTimer(type, duration) {
     if (!runState) return;
     runState[`${type}StartTime`] = Date.now();
@@ -5886,19 +5929,29 @@ function updateTimersUI() {
         const t = document.getElementById('work-timer');
         if (el.type === 'timer') {
             _updateWorkTimerRing(el, t);
+            hideRingDot('dot-work', 'ring-work');
         } else if (el.type === 'sets' && el.setMode === 'time') {
             _updateSetTimeRing(el, t);
+            hideRingDot('dot-work', 'ring-work');
         } else {
-            if (t) t.innerText = formatTime(getCurrentElapsed('work'));
-            if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', 1, 'paused'); }
-            else { if (t) t.style.color = ''; setRingProgress('ring-work', 1, runState.workPaused ? 'paused' : 'work'); }
+            // СЕКУНДОМЕР (type === 'time' или sets/reps) — точка по кругу
+            const elapsed = getCurrentElapsed('work');
+            if (t) t.innerText = formatTime(elapsed);
+            const paused = runState.workPaused || runState._menuOpen;
+            const dotCls = paused ? 'paused' : 'work';
+            setRingDot('dot-work', 'ring-work', elapsed, dotCls);
+            if (t) t.style.color = paused ? 'var(--warn)' : '';
         }
     } else if (phase === 'warmup' && !runState.warmupFinished) {
         const el = document.getElementById('warmup-timer');
         if (runState.warmupMode === 'free') {
-            if (el) el.innerText = formatTime(getCurrentElapsed('warmup'));
-            if (runState._menuOpen) { if (el) el.style.color = 'var(--warn)'; setRingProgress('ring-warmup', 1, 'paused'); }
-            else { if (el) el.style.color = ''; setRingProgress('ring-warmup', 1, runState.warmupPaused ? 'paused' : 'warmup'); }
+            // РАЗМИНКА СВОБОДНО — точка по кругу
+            const elapsed = getCurrentElapsed('warmup');
+            if (el) el.innerText = formatTime(elapsed);
+            const paused = runState.warmupPaused || runState._menuOpen;
+            const dotCls = paused ? 'paused' : 'warmup';
+            setRingDot('dot-warmup', 'ring-warmup', elapsed, dotCls);
+            if (el) el.style.color = paused ? 'var(--warn)' : '';
         } else {
             const rem = getRemainingTime('warmup');
             if (el) el.innerText = formatTime(rem);
@@ -5907,6 +5960,7 @@ function updateTimersUI() {
             else { if (el) el.style.color = ''; setRingProgress('ring-warmup', rem / dur, runState.warmupPaused ? 'paused' : 'warmup'); }
             if (rem > 0 && rem <= 3 && !runState.warmupBeepPlayed && !runState.warmupPaused && !runState._menuOpen) { runState.warmupBeepPlayed = true; announceFinalCount(rem); }
             if (rem === 0 && !runState.warmupFinished && !runState._menuOpen) onWarmupFinished();
+            hideRingDot('dot-warmup', 'ring-warmup');
         }
     } else if (phase === 'rest' && !runState.restBannerMode) {
         _updateRestRing();
@@ -6011,7 +6065,7 @@ function renderRun() {
             else if (el.type === 'sets') info = `<p style="text-align:center; color:var(--accent); font-size:1.15rem; font-weight:700; margin-bottom:10px;">🔁 ${el.setsCount || 3}× ${el.setMode === 'reps' ? (el.targetReps || 10) + ' повт.' : (el.setDuration || 45) + ' сек'}</p>`;
             const canUndo = runState.exerciseTimes.length > 0;
             const undoBtn = canUndo ? `<button class="btn ghost" onclick="undoLastElement()" style="background:var(--card-2); color:var(--blue); margin-top:8px;">↩ Восстановить</button>` : '';
-            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}`;
+            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}</p>`;
             document.getElementById('phase-ready').style.display = 'block';
         }
     } else if (phase === 'countdown') {
@@ -6035,7 +6089,6 @@ function renderRun() {
             pauseBtn.style.display = 'block'; pauseBtn.innerText = runState.warmupPaused ? '▶ Продолжить' : '⏸ Пауза';
             finishEarlyBtn.style.display = 'none'; skipBtn.style.display = 'none';
             confirmBtn.style.display = 'block'; confirmBtn.innerText = '✅ Готов';
-            setRingProgress('ring-warmup', 0.5, runState.warmupPaused ? 'paused' : 'warmup');
         } else if (runState.warmupFinished) {
             phaseLabel.innerText = '✅ Разминка завершена';
             currentExEl.style.color = 'var(--accent)';
@@ -6043,6 +6096,7 @@ function renderRun() {
             pauseBtn.style.display = 'none'; finishEarlyBtn.style.display = 'none'; skipBtn.style.display = 'none';
             confirmBtn.style.display = 'block'; confirmBtn.innerText = '▶ К упражнению';
             setRingProgress('ring-warmup', 1, 'danger');
+            hideRingDot('dot-warmup', 'ring-warmup');
         } else {
             phaseLabel.innerText = runState.warmupPaused ? '⏸ ПАУЗА' : 'РАЗМИНКА';
             currentExEl.style.color = '';
@@ -6050,6 +6104,7 @@ function renderRun() {
             pauseBtn.style.display = 'block'; pauseBtn.innerText = runState.warmupPaused ? '▶ Продолжить' : '⏸ Пауза';
             finishEarlyBtn.style.display = 'block'; skipBtn.style.display = 'block'; confirmBtn.style.display = 'none';
             if (runState.warmupPaused) setRingProgress('ring-warmup', 1, 'paused');
+            hideRingDot('dot-warmup', 'ring-warmup');
         }
         document.getElementById('phase-warmup').style.display = 'block';
     } else if (phase === 'work') {
@@ -6341,11 +6396,11 @@ function showFinishScreen() {
         ${noteItems.length ? `<details open style="margin-top:12px; background:var(--card); border-radius:var(--r-md); border:1px solid var(--border-soft);"><summary style="padding:14px 16px; font-weight:600;">📝 Заметки по упражнениям</summary><div style="padding:0 16px 16px;">${noteItems.join('')}</div></details>` : ''}
         <div class="card" style="margin-top:12px;" id="finish-note-card"><button id="finish-note-toggle" class="btn ghost small" style="width:100%; padding:10px; font-size:0.85rem;" onclick="toggleFinishNote()">📝 Добавить заметку к тренировке</button><div id="finish-note-block" style="display:none; margin-top:8px;"><textarea id="finish-note" class="input" placeholder="Как самочувствие?" style="min-height:70px;">${escapeHtml(runState.workoutNoteDraft || '')}</textarea><button class="btn small accent" onclick="saveWorkoutNote(${record.id})">💾 Сохранить</button></div></div>
         <details style="margin-top:12px; background:var(--card); border-radius:var(--r-md); border:1px solid var(--border-soft);"><summary style="padding:14px 16px; font-weight:600;">📊 Время по упражнениям</summary><div style="padding:0 16px 16px;">${exListHtml}</div></details>
-        <hr style="border: none; border-top: 2px solid var(--muted-2); margin: 20px 0 8px 0;">
+        <div style="height: 20px;"></div>
 		<button class="btn accent" onclick="shareResult(${record.id})" style="margin-top:16px;">📤 Поделиться</button>
         <button class="btn ghost" onclick="saveCurrentRunAsTemplate()" style="margin-top:8px;">💾 Сохранить как шаблон</button>
         <button class="btn" onclick="repeatLastWorkout(${runState.workout.id})" style="margin-top:8px;">🔁 Повторить</button>
-		<hr style="border: none; border-top: 2px solid var(--muted-2); margin: 20px 0 16px 0;">
+		<div style="height: 20px;"></div>
 		<button class="btn ghost" onclick="showScreen('screen-workouts')" style="margin-top:0; min-height:60px; font-size:1.1rem;">← К тренировкам</button>
 		<button class="btn ghost" onclick="showScreen('screen-home')" style="margin-top:8px; min-height:60px; font-size:1.1rem;">🏠 На главную</button>
     `;
