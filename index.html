@@ -4819,8 +4819,8 @@ function renderPreviewElements(exercises) {
         else if (e.type === 'timer') info = `⏳ ${formatTime(e.timerDuration || 60)}`;
         else info = 'по времени';
         const icon = e.type === 'sets' ? ' 🔁' : e.type === 'reps' ? ' 🔢' : e.type === 'timer' ? ' ⏳' : '';
-        return `<div class="preview-exercise"><div class="num">${exNum}</div><div class="info"><div class="name">${escapeHtml(e.name || 'Упражнение')}${icon}</div><div class="rest-info">${info}${e.notes ? ' · ' + escapeHtml(e.notes) : ''}</div></div></div>`;
-    }).join('');
+       return `<div class="preview-exercise"><div class="num">${exNum}</div><div class="info" style="flex:1; min-width:0;"><div class="name" style="word-break:break-word;">${escapeHtml(e.name || 'Упражнение')}${icon}</div><div class="rest-info" style="word-break:break-word;">${info}${e.notes ? ' · ' + escapeHtml(e.notes) : ''}</div></div></div>`;
+	   }).join('');
 }
 
 function updateEditorSettingVisibility() {
@@ -6242,11 +6242,12 @@ function showFinishScreen() {
     const muteBtnEl = document.getElementById('timer-mute-btn');
     if (muteBtnEl) muteBtnEl.style.display = 'none';
 
-    const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
+       const runMenuBtn = document.querySelector('#screen-run .top-bar .back-btn[onclick="openRunMenu()"]');
     if (runMenuBtn) {
-        runMenuBtn.style.display = 'none';
+        // Вместо скрытия делаем его невидимым заполнителем (spacer), чтобы сохранить центровку заголовка
         runMenuBtn.style.visibility = 'hidden';
         runMenuBtn.style.pointerEvents = 'none';
+        runMenuBtn.innerHTML = ''; 
     }
     const runTitle = document.getElementById('run-title');
     if (runTitle) {
@@ -6326,8 +6327,14 @@ function showFinishScreen() {
         let setsInfo = '';
         if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
         const setsColor = Array.isArray(sets) && sets.length ? 'var(--blue)' : 'inherit';
-        exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${exCounter}. ${escapeHtml(el.name || 'Упражнение')}</span><span style="color:${setsColor}; font-size:0.85rem; font-weight:600;">${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; margin-left:8px;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
-    });
+         exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft); gap: 8px;">
+            <span style="color:var(--muted); font-size:0.9rem; flex: 1; min-width: 0; word-break: break-word;">${exCounter}. ${escapeHtml(el.name || 'Упражнение')}</span>
+            <div style="display: flex; flex-shrink: 0; align-items: center; justify-content: flex-end; gap: 12px;">
+                <span style="color:${setsColor}; font-size:0.85rem; font-weight:600; white-space: nowrap;">${setsInfo}</span>
+                <span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; min-width: 48px; text-align: right; white-space: nowrap;">${isSkipped ? '⏭' : formatTime(t || 0)}</span>
+            </div>
+        </div>`;
+		});
 
     document.getElementById('phase-finish').innerHTML = `
         <div class="finish-card" style="margin-top:0;"><div class="finish-title">🎉 Готово!</div><div class="stats-grid"><div class="stat-row"><div class="stat-label">🕐 Начало</div><div class="stat-value">${formatClock(runState.startTime)}</div></div><div class="stat-row"><div class="stat-label">🏁 Конец</div><div class="stat-value">${formatClock(endTime)}</div></div><div class="stat-row"><div class="stat-label">⏱ Длительность</div><div class="stat-value">${formatTime(totalDuration)}</div></div><div class="stat-row"><div class="stat-label">💪 Работа</div><div class="stat-value highlight">${formatTime(runState.totalWorkTime)}</div></div>${(runState.warmupSeconds || 0) > 0 ? `<div class="stat-row"><div class="stat-label">🔥 Разминка</div><div class="stat-value">${formatTime(runState.warmupSeconds)}</div></div>` : ''}</div></div>
@@ -6492,8 +6499,14 @@ function openHistoryItemDetail(id) {
         let setsInfo = '';
         if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
         const setsColor = Array.isArray(sets) && sets.length ? 'var(--blue)' : 'inherit';
-        exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${i + 1}. ${escapeHtml(name || 'Упражнение')}</span><span style="color:${setsColor}; font-size:0.85rem; font-weight:600;">${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; margin-left:8px;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
-    });
+                exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft); gap: 8px;">
+            <span style="color:var(--muted); font-size:0.9rem; flex: 1; min-width: 0; word-break: break-word;">${i + 1}. ${escapeHtml(name || 'Упражнение')}</span>
+            <div style="display: flex; flex-shrink: 0; align-items: center; justify-content: flex-end; gap: 12px;">
+                <span style="color:${setsColor}; font-size:0.85rem; font-weight:600; white-space: nowrap;">${setsInfo}</span>
+                <span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; min-width: 48px; text-align: right; white-space: nowrap;">${isSkipped ? '⏭' : formatTime(t || 0)}</span>
+            </div>
+        </div>`;   
+		});
     let notesHtml = '';
     if (r.exerciseNotes && Object.keys(r.exerciseNotes).length > 0) {
         const items = Object.entries(r.exerciseNotes).map(([idx, note]) => {
