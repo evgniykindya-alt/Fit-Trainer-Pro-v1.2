@@ -339,6 +339,8 @@ textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
 .set-badge .set-num { color: var(--accent); }
 .start-time-display { position: relative; text-align: center; font-size: 0.8rem; font-weight: 600; white-space: nowrap; color: var(--muted) !important; }
 .current-exercise { text-align: center; font-size: 2.2rem; font-weight: 700; margin: 4px 0; letter-spacing: -0.5px; word-break: break-word; line-height: 1.15; min-height: 2.6rem; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+.current-exercise.long { font-size: 1.6rem; }
+.current-exercise.very-long { font-size: 1.3rem; }
 .next-exercise-block { text-align: center; margin: 8px 0 16px; padding: 12px 16px; background: var(--card-2); border-radius: var(--r-sm); border: 1px solid var(--border-soft); }
 .next-exercise-block.water { background: var(--water-soft); border-color: var(--water); }
 .next-exercise-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
@@ -524,7 +526,9 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 .durations-bar.current-week .durations-bar-label { color: var(--warn); font-weight: 700; }
 .durations-bar.no-plan .durations-bar-value { color: var(--muted); }
 .durations-avg-line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted-2); pointer-events: none; z-index: 2; }
-.durations-avg-label { position: absolute; right: 0; top: -14px; font-size: 0.62rem; color: var(--muted); background: var(--card); padding: 0 4px; border-radius: 4px; }
+.durations-avg-label { position: absolute; right: 0; top: -14px; font-size: 0.62rem; color: var(--muted); background: var(--card); padding: 0 4px; border-radius: 4px; white-space: nowrap; }
+.durations-avg-line.low { border-top-color: var(--accent-soft); }
+.durations-avg-line.low .durations-avg-label { top: -4px; bottom: auto; transform: translateY(-100%); }
 .week-metric-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 .week-metric-row .select { flex: 1 1 120px; margin: 0; padding: 8px 32px 8px 10px; font-size: 0.82rem; min-width: 0; }
 .measure-current-card { background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border: 1px solid var(--primary); border-radius: var(--r-md); padding: 20px; margin-top: 16px; margin-bottom: 12px; text-align: center; }
@@ -620,40 +624,35 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     margin-top: max(8px, env(safe-area-inset-top, 20px));
     margin-bottom: max(8px, env(safe-area-inset-bottom, 0px));
     max-height: calc(100vh - max(16px, env(safe-area-inset-top, 20px) * 2));
+    overflow-y: auto;
+    overflow-x: hidden; /* ФИКС: убрана горизонтальная прокрутка */
 }
 .notif-side-overlay {
     padding-top: max(0px, env(safe-area-inset-top, 20px));
     padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
 }
 
-/* Стили для статистики упражнений */
-.stat-exercise {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-soft);
-}
-.stat-exercise-name {
-    color: var(--muted);
-    font-size: 0.9rem;
-}
-.stat-exercise-detail {
-    color: var(--blue);
-    font-weight: 600;
-    font-size: 0.85rem;
-}
-.stat-exercise-time {
-    color: var(--accent);
-    font-weight: 700;
+.stat-exercise { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.stat-exercise-name { color: var(--muted); font-size: 0.9rem; }
+.stat-exercise-detail { color: var(--blue); font-weight: 600; font-size: 0.85rem; }
+.stat-exercise-time { color: var(--accent); font-weight: 700; }
+
+.heatmap-cell, .streak-cell { cursor: pointer; transition: transform 0.1s, background 0.15s; }
+.heatmap-cell:active, .streak-cell:active { transform: scale(0.9); }
+
+@media (max-width: 400px) {
+    .current-exercise { font-size: 1.8rem; }
+    .current-exercise.long { font-size: 1.4rem; }
+    .current-exercise.very-long { font-size: 1.15rem; }
 }
 
-/* Кнопки для календаря */
-.heatmap-cell, .streak-cell {
-    cursor: pointer;
-    transition: transform 0.1s, background 0.15s;
+/* ФИКС: скрываем стандартный скроллбар в шторке уведомлений, чтобы не было полосы */
+.notif-side-sheet .sheet-scroll-area {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
-.heatmap-cell:active, .streak-cell:active {
-    transform: scale(0.9);
+.notif-side-sheet .sheet-scroll-area::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 </style>
 </head>
@@ -2653,13 +2652,15 @@ function buildWeekWorkChart() {
         }
         const validForAvg = weeks.filter(w => w.value !== null && w.value !== undefined);
         const avg = validForAvg.length > 0 ? validForAvg.reduce((s, w) => s + (w.value || 0), 0) / validForAvg.length : 0;
-        const maxVal = Math.max(1, ...validForAvg.map(w => w.value || 0));
-        const avgPct = Math.min(100, (avg / maxVal) * 100);
+        const maxValRaw = Math.max(...validForAvg.map(w => Math.abs(w.value || 0)), 0);
+        const maxVal = Math.max(1, maxValRaw);
+        const avgPct = Math.min(100, Math.max(0, (avg / maxVal) * 100));
+        const isLowAvg = avgPct < 12 && avgPct > 0;
 
         const barsHtml = weeks.map(w => {
             const hasValue = w.value !== null && w.value !== undefined;
             const v = hasValue ? w.value : 0;
-            const pct = Math.max(v > 0 ? 4 : 0, Math.round((v / maxVal) * 100));
+            const pct = Math.max(v > 0 ? 4 : 0, Math.min(100, Math.round((v / maxVal) * 100)));
             const belowAvg = hasValue && v < avg;
             const isNoPlan = metric === 'plan' && !hasValue;
             const fillCls = 'durations-bar-fill'
@@ -2690,7 +2691,7 @@ function buildWeekWorkChart() {
             </select>
         </div>
         <div class="durations-chart" style="position:relative;">
-            ${avgPct > 0 ? `<div class="durations-avg-line" style="bottom:${avgPct}%;"><div class="durations-avg-label">сред. ${avg > 0 ? avg.toFixed(0) : 0} ${unit}</div></div>` : ''}
+            ${avgPct > 0 ? `<div class="durations-avg-line${isLowAvg ? ' low' : ''}" style="bottom:${avgPct}%;"><div class="durations-avg-label">сред. ${avg > 0 ? avg.toFixed(0) : 0} ${unit}</div></div>` : ''}
             ${barsHtml}
         </div>
         <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--muted); margin-top:6px;">
@@ -3308,6 +3309,7 @@ function restoreRunState(saved) {
         deloadPercent: saved.deloadPercent || 35,
         _removedExercises: saved.removedExercises || []
     };
+    if (runState.countdownInterval) { try { clearInterval(runState.countdownInterval); } catch(e) {} runState.countdownInterval = null; }
     document.getElementById('run-title').innerText = workout.name;
     acquireWakeLock(); enableExitProtection();
     renderRun();
@@ -3622,7 +3624,9 @@ function getDragAfterElement(c, y) {
     if (!c) return null;
     const sel = (dragContext && dragContext.itemSelector) || '.workout-item';
     const els = [...c.querySelectorAll(`${sel}:not(.dragging)`)];
-    return els.reduce((cl, ch) => { const b = ch.getBoundingClientRect(); const o = y - b.top - b.height / 2; return (o < 0 && o > cl.offset) ? { offset: o, element: ch } : cl; }, { offset: Number.NEGATIVE_INFINITY }).element;
+    if (els.length === 0) return null;
+    const result = els.reduce((cl, ch) => { const b = ch.getBoundingClientRect(); const o = y - b.top - b.height / 2; return (o < 0 && o > cl.offset) ? { offset: o, element: ch } : cl; }, { offset: Number.NEGATIVE_INFINITY });
+    return result.element || null;
 }
 function saveNewOrder() {
     if (!dragContext) return;
@@ -3637,6 +3641,7 @@ function saveNewOrder() {
         DB.settings.accordions = DB.settings.accordions || {};
         DB.settings.accordions.activityOrder = keys;
         Storage.set('ft_settings', DB.settings);
+        try { renderActivity(); } catch(e) { console.warn('[saveNewOrder activity]', e); }
         return;
     }
 
@@ -4359,12 +4364,13 @@ async function deleteAllMeasurements() {
 function getActiveWeek(program, date) {
     if (!program.weeks || program.weeks.length === 0) return null;
     const d = new Date(date); d.setHours(0,0,0,0);
+    let found = null;
     for (const w of program.weeks) {
         if (!w || !w.days || !w.startDate) continue;
         const s = parseDateKey(w.startDate), e = addDays(s, 6);
-        if (d >= s && d <= e) return w;
+        if (d >= s && d <= e) found = w;
     }
-    return null;
+    return found;
 }
 function toggleProgramsCalendar() { DB.settings.programsCalendarCollapsed = !DB.settings.programsCalendarCollapsed; saveDB('settings'); renderPrograms(); }
 function updateProgramsCalendarBtn() {
@@ -5563,7 +5569,11 @@ async function finishExercise() {
             if (!wasPausedBefore) pauseTimer('work');
             renderRun();
             askedCount = await askRepsCount(el.targetReps || 0);
-            if (askedCount === null) { if (!wasPausedBefore) resumeTimer('work'); renderRun(); return; }
+            if (askedCount === null) {
+                if (!wasPausedBefore && !runState.timerFinished) resumeTimer('work');
+                renderRun();
+                return;
+            }
         }
         const elapsed = getCurrentElapsed('work');
         stopTimer('work'); runState.workPaused = false;
@@ -5959,10 +5969,14 @@ function renderRun() {
     hideAllPhases();
     setBadge.style.display = 'none';
     currentExEl.style.color = '';
+    currentExEl.classList.remove('long', 'very-long');
     phaseLabel.className = 'phase-label';
     if (DB.settings.showStartTime && runState.startTime) { startDisplay.style.display = 'block'; startValue.innerText = formatClock(runState.startTime); }
     else startDisplay.style.display = 'none';
     phaseLabel.style.display = 'block';
+    const nameLen = (el.kind === 'exercise' ? (el.name || '').length : 0);
+    if (nameLen > 22) currentExEl.classList.add('very-long');
+    else if (nameLen > 14) currentExEl.classList.add('long');
     if (el.kind === 'exercise' && el.type === 'sets' && (phase === 'work' || phase === 'countdown' || phase === 'ready')) {
         setBadge.style.display = 'block';
         setBadge.innerHTML = `Подход <span class="set-num">${runState.currentSet}</span> из ${el.setsCount || 3}`;
@@ -5997,7 +6011,7 @@ function renderRun() {
             else if (el.type === 'sets') info = `<p style="text-align:center; color:var(--accent); font-size:1.15rem; font-weight:700; margin-bottom:10px;">🔁 ${el.setsCount || 3}× ${el.setMode === 'reps' ? (el.targetReps || 10) + ' повт.' : (el.setDuration || 45) + ' сек'}</p>`;
             const canUndo = runState.exerciseTimes.length > 0;
             const undoBtn = canUndo ? `<button class="btn ghost" onclick="undoLastElement()" style="background:var(--card-2); color:var(--blue); margin-top:8px;">↩ Восстановить</button>` : '';
-            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}</button>`;
+            document.getElementById('phase-ready').innerHTML = `${el.notes ? `<p style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px;">📝 ${escapeHtml(el.notes)}</p>` : ''}${info}<p style="text-align:center; color:var(--muted);">Готов? Нажми чтобы начать.</p><button class="btn accent" onclick="beginCurrentElementFlow()">▶ Начать</button><button class="btn ghost" onclick="skipExercise()" style="background:var(--card-2); color:var(--muted); margin-top:8px;">⏭ Пропустить</button>${undoBtn}`;
             document.getElementById('phase-ready').style.display = 'block';
         }
     } else if (phase === 'countdown') {
@@ -6311,7 +6325,8 @@ function showFinishScreen() {
         const isSkipped = t !== undefined && t !== null && t < 0;
         let setsInfo = '';
         if (Array.isArray(sets) && sets.length) setsInfo = ` · подходы: ${sets.join('/')}`;
-        exListHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${exCounter}. ${escapeHtml(el.name || 'Упражнение')}${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
+        const setsColor = Array.isArray(sets) && sets.length ? 'var(--blue)' : 'inherit';
+        exListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--muted); font-size:0.9rem;">${exCounter}. ${escapeHtml(el.name || 'Упражнение')}</span><span style="color:${setsColor}; font-size:0.85rem; font-weight:600;">${setsInfo}</span><span style="color:${isSkipped ? 'var(--muted)' : 'var(--accent)'}; font-weight:700; margin-left:8px;">${isSkipped ? '⏭ пропущено' : formatTime(t || 0)}</span></div>`;
     });
 
     document.getElementById('phase-finish').innerHTML = `
@@ -6319,10 +6334,13 @@ function showFinishScreen() {
         ${noteItems.length ? `<details open style="margin-top:12px; background:var(--card); border-radius:var(--r-md); border:1px solid var(--border-soft);"><summary style="padding:14px 16px; font-weight:600;">📝 Заметки по упражнениям</summary><div style="padding:0 16px 16px;">${noteItems.join('')}</div></details>` : ''}
         <div class="card" style="margin-top:12px;" id="finish-note-card"><button id="finish-note-toggle" class="btn ghost small" style="width:100%; padding:10px; font-size:0.85rem;" onclick="toggleFinishNote()">📝 Добавить заметку к тренировке</button><div id="finish-note-block" style="display:none; margin-top:8px;"><textarea id="finish-note" class="input" placeholder="Как самочувствие?" style="min-height:70px;">${escapeHtml(runState.workoutNoteDraft || '')}</textarea><button class="btn small accent" onclick="saveWorkoutNote(${record.id})">💾 Сохранить</button></div></div>
         <details style="margin-top:12px; background:var(--card); border-radius:var(--r-md); border:1px solid var(--border-soft);"><summary style="padding:14px 16px; font-weight:600;">📊 Время по упражнениям</summary><div style="padding:0 16px 16px;">${exListHtml}</div></details>
-        <button class="btn accent" onclick="shareResult(${record.id})" style="margin-top:16px;">📤 Поделиться</button>
+        <hr style="border: none; border-top: 2px solid var(--muted-2); margin: 20px 0 8px 0;">
+		<button class="btn accent" onclick="shareResult(${record.id})" style="margin-top:16px;">📤 Поделиться</button>
         <button class="btn ghost" onclick="saveCurrentRunAsTemplate()" style="margin-top:8px;">💾 Сохранить как шаблон</button>
         <button class="btn" onclick="repeatLastWorkout(${runState.workout.id})" style="margin-top:8px;">🔁 Повторить</button>
-        <button class="btn ghost" onclick="showScreen('screen-workouts')">← К тренировкам</button>
+		<hr style="border: none; border-top: 2px solid var(--muted-2); margin: 20px 0 16px 0;">
+		<button class="btn ghost" onclick="showScreen('screen-workouts')" style="margin-top:0; min-height:60px; font-size:1.1rem;">← К тренировкам</button>
+		<button class="btn ghost" onclick="showScreen('screen-home')" style="margin-top:8px; min-height:60px; font-size:1.1rem;">🏠 На главную</button>
     `;
     document.getElementById('phase-finish').style.display = 'block';
     releaseWakeLock();
@@ -6690,6 +6708,7 @@ async function resetAllSettings() {
         weekMetric: 'work', weekRange: 8,
         homeStreakCollapsed: false, homePlanCollapsed: false
     };
+    if (DB.settings.soundMode !== 'voice' && DB.settings.soundMode !== 'beep') DB.settings.soundMode = 'beep';
     saveDB('settings');
     applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
     renderSettings();
@@ -7176,24 +7195,17 @@ function openRunMenu() {
     };
 }
 
-// ==== УЛУЧШЕННЫЙ РЕДАКТОР ОЧЕРЕДИ ТРЕНИРОВКИ С СОХРАНЕНИЕМ УДАЛЁННЫХ ====
 function openRunQueueEditor() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
 
-    // Формируем рабочий список: текущие упражнения + удалённые
     const tempExercises = [];
-    const removedMarkSet = new Set((runState._removedExercises || []).map(e => JSON.stringify(e)));
-    
-    // Сначала добавляем текущие
     runState.workout.exercises.forEach((el, i) => {
         const copy = JSON.parse(JSON.stringify(el));
         copy._origIndex = i;
         copy._removed = false;
         tempExercises.push(copy);
     });
-    
-    // Добавляем удалённые, помечая их
     (runState._removedExercises || []).forEach((el, i) => {
         const copy = JSON.parse(JSON.stringify(el));
         copy._origIndex = -1;
@@ -7201,7 +7213,6 @@ function openRunQueueEditor() {
         tempExercises.push(copy);
     });
 
-    // Отмечаем выполненные (по exerciseTimes)
     let exCounter = 0;
     tempExercises.forEach((el, i) => {
         if (el.kind === 'exercise' && !el._removed) {
@@ -7273,10 +7284,10 @@ function openRunQueueEditor() {
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
             let strike = '';
-			if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
-			if (isRemoved) strike = 'color: var(--muted); opacity: 0.6; background: var(--card-3);';
+            if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
+            if (isRemoved) strike = 'color: var(--muted); opacity: 0.6; background: var(--card-3);';
+
             let actionBtn = '';
-			
             if (isRemoved) {
                 actionBtn = `<button class="btn small ghost" style="padding:6px 8px; min-height:0; margin:0; font-size:0.85rem; color:var(--accent); border-color:var(--accent); background:var(--accent-soft);" onclick="event.stopPropagation(); runQueueRestore(${i})" aria-label="Восстановить">✅</button>`;
             } else if (isPast) {
@@ -7338,8 +7349,6 @@ function openRunQueueEditor() {
             if (el._removed) removed.push(el);
             else active.push(el);
         });
-        
-        // Очищаем от служебных полей
         const cleanActive = active.map(el => {
             const c = Object.assign({}, el);
             delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
@@ -7350,20 +7359,15 @@ function openRunQueueEditor() {
             delete c._origIndex; delete c._done; delete c._skipped; delete c._removed;
             return c;
         });
-        
         if (cleanActive.length === 0) { showToast('Нельзя оставить пустую тренировку'); return; }
-        
         runState.workout.exercises = cleanActive;
         runState._removedExercises = cleanRemoved;
-        
-        // Вычисляем новый индекс
         let newIdx = 0;
         let count = 0;
         for (let k = 0; k < tempExercises.length; k++) {
             if (k === currentIdx) { newIdx = count; break; }
             if (!tempExercises[k]._removed) count++;
         }
-        
         runState.index = Math.max(0, Math.min(newIdx, cleanActive.length - 1));
         saveRunState();
         resumeAfterClose();
