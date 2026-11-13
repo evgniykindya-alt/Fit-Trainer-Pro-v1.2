@@ -5195,7 +5195,7 @@ function setRingDot(dotId, ringId, elapsedSec, cls) {
     const seconds = Math.max(0, Math.floor(elapsedSec || 0));
     // Отсчёт начинается сверху (12 часов), идёт по часовой стрелке.
     // 6° на секунду, оборот за 60с. Вычитаем 90°, так как SVG повёрнут на -90°.
-    const angle = ((seconds % 60) * 6) + 90;
+    const angle = (seconds * 6) + 90;
     dot.style.transform = `rotate(${angle}deg)`;
     //dot.style.transformOrigin = '60px 60px';
     if (cls !== undefined) { try { dot.setAttribute('class', 'timer-ring-dot ' + cls); } catch(e) {} }
