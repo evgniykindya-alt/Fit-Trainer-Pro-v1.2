@@ -239,12 +239,15 @@ body.compact-workouts .btn-start-workout { padding: 8px; font-size: 0.85rem; min
 select.select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a1a1b3' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 .input:focus, .select:focus { outline: none; border-color: var(--primary); }
 textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
-.exercise-block { background: var(--card-2); border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--primary); }
+.exercise-block { background: var(--card-2); border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--primary); position: relative; }
 .exercise-block.rest-block { border-left-color: var(--rest); background: var(--card-2); }
 .exercise-block.rest-block.water-type { border-left-color: var(--water); background: var(--water-soft); }
 .exercise-block.warmup-block { border-left-color: var(--warn); background: var(--warn-soft); }
 .exercise-block.collapsed { padding: 8px 12px; }
 .exercise-block.collapsed .exercise-body { display: none; }
+.exercise-block.dragging-editor { opacity: 0.95; z-index: 9999; box-shadow: var(--shadow-lg); background: var(--card-2); border: 1px solid var(--primary); pointer-events: none; position: fixed !important; width: calc(100% - 32px) !important; left: 16px !important; top: 0 !important; margin: 0 !important; }
+.exercise-block.drag-placeholder-editor { background: transparent; border: 2px dashed var(--muted-2); border-radius: var(--r-sm); margin-bottom: 10px; opacity: 0.5; }
+.exercise-block.drag-placeholder-editor.active-drop { border-color: var(--accent); background: var(--accent-soft); }
 .exercise-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .exercise-block.collapsed .exercise-header { margin-bottom: 0; }
 .exercise-number { background: var(--primary); color: #0a0a10; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
@@ -3594,7 +3597,7 @@ function initDragAndDrop(item, opts) {
     item.addEventListener('dragover', (e) => { e.preventDefault(); const c = document.querySelector(dragContext ? dragContext.containerSelector : containerSelector); if (c) updatePlaceholderPosition(getDragAfterElement(c, e.clientY)); });
     item.addEventListener('drop', (e) => { e.preventDefault(); finalizeDrop(); });
     item.addEventListener('touchstart', (e) => {
-        if (e.target.closest('.icon-btn') || e.target.closest('.btn') || e.target.closest('button')) return;
+        if (e.target.closest('.icon-btn') || e.target.closest('.btn') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea')) return;
         const t = e.touches[0];
         longPressTimer = setTimeout(() => { dragContext = item._dragOpts; startDragging(item, t.clientY); }, 350);
     }, { passive: true });
@@ -3680,12 +3683,158 @@ function saveNewOrder() {
         return;
     }
 
+    if (dbKey === 'editorExercises') {
+        const els = Array.from(container.querySelectorAll(sel));
+        const indices = els.map(el => parseInt(el.dataset.id)).filter(n => !isNaN(n));
+        if (indices.length === 0) return;
+        const newExercises = indices.map(i => editorExercises[i]);
+        editorExercises = newExercises;
+        renderEditorExercises();
+        return;
+    }
+
     const els = Array.from(container.querySelectorAll(sel));
     const ids = els.map(el => parseInt(el.dataset.id)).filter(n => !isNaN(n));
     const db = DB[dbKey]; if (!Array.isArray(db)) return;
     const ro = []; ids.forEach(id => { const w = db.find(x => x.id === id); if (w) ro.push(w); });
     db.forEach(w => { if (!ro.includes(w)) ro.push(w); });
     DB[dbKey] = ro; saveDB(dbKey);
+}
+
+// --- EDITOR DRAG AND DROP ---
+let editorDragItem = null, editorDragPlaceholder = null, editorDragOffsetY = 0, editorLongPressTimer = null;
+let editorDragContext = null;
+
+function initEditorDragAndDrop(item, index, containerSelector) {
+    item._editorDragOpts = { index, containerSelector };
+    item.setAttribute('draggable', 'true');
+    item.addEventListener('dragstart', (e) => {
+        if (e.target.closest('input, select, textarea, button, .exercise-controls')) { e.preventDefault(); return; }
+        editorDragItem = item;
+        editorDragContext = item._editorDragOpts;
+        item.classList.add('dragging-editor');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => { cleanupEditorDrag(); });
+    item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const c = document.querySelector(editorDragContext ? editorDragContext.containerSelector : containerSelector);
+        if (c) updateEditorPlaceholderPosition(c, e.clientY);
+    });
+    item.addEventListener('drop', (e) => { e.preventDefault(); finalizeEditorDrop(); });
+    item.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.icon-btn') || e.target.closest('.btn') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea')) return;
+        const t = e.touches[0];
+        editorLongPressTimer = setTimeout(() => {
+            editorDragContext = item._editorDragOpts;
+            startEditorDragging(item, t.clientY);
+        }, 350);
+    }, { passive: true });
+}
+
+document.addEventListener('touchmove', handleGlobalEditorTouchMove, { passive: false });
+document.addEventListener('touchend', handleGlobalEditorTouchEnd);
+document.addEventListener('touchcancel', handleGlobalEditorTouchEnd);
+
+function startEditorDragging(item, cy) {
+    if (!item._editorDragOpts) return;
+    editorDragItem = item;
+    editorDragContext = item._editorDragOpts;
+    editorDragPlaceholder = document.createElement('div');
+    editorDragPlaceholder.className = 'drag-placeholder';
+    item.classList.add('dragging-editor');
+    editorDragPlaceholder.style.height = item.offsetHeight + 'px';
+    item.parentNode.insertBefore(editorDragPlaceholder, item);
+    const r = item.getBoundingClientRect();
+    editorDragOffsetY = cy - r.top;
+    item.style.top = (cy - editorDragOffsetY) + 'px';
+    document.body.classList.add('no-scroll');
+}
+
+function handleGlobalEditorTouchMove(e) {
+    if (!editorDragItem) { clearTimeout(editorLongPressTimer); return; }
+    e.preventDefault();
+    const t = e.touches[0];
+    const ny = t.clientY - editorDragOffsetY;
+    editorDragItem.style.transform = `translate3d(0, ${ny - parseFloat(editorDragItem.style.top)}px, 0)`;
+    const eb = document.elementFromPoint(t.clientX, t.clientY);
+    if (!eb) return;
+    const sel = '.exercise-block';
+    const contSel = editorDragContext ? editorDragContext.containerSelector : '#exercises-list';
+    const ti = eb.closest(sel);
+    document.querySelectorAll('.drag-placeholder').forEach(p => p.classList.remove('active-drop'));
+    if (ti && ti !== editorDragItem) {
+        const l = document.querySelector(contSel);
+        if (!l || !l.contains(ti)) return;
+        const b = ti.getBoundingClientRect();
+        const o = t.clientY - b.top - (b.height / 2);
+        if (o > 0) {
+            if (ti.nextSibling && ti.nextSibling !== editorDragPlaceholder) l.insertBefore(editorDragPlaceholder, ti.nextSibling);
+            else if (ti.nextSibling !== editorDragPlaceholder) l.appendChild(editorDragPlaceholder);
+        } else if (ti !== editorDragPlaceholder) {
+            l.insertBefore(editorDragPlaceholder, ti);
+        }
+        editorDragPlaceholder.classList.add('active-drop');
+    }
+}
+
+function handleGlobalEditorTouchEnd() {
+    clearTimeout(editorLongPressTimer);
+    if (editorDragItem) finalizeEditorDrop();
+}
+
+function updateEditorPlaceholderPosition(c, y) {
+    if (!editorDragItem) return;
+    if (!editorDragPlaceholder) {
+        editorDragPlaceholder = document.createElement('div');
+        editorDragPlaceholder.className = 'drag-placeholder';
+        editorDragPlaceholder.style.height = editorDragItem.offsetHeight + 'px';
+    }
+    const sel = '.exercise-block';
+    const els = [...c.querySelectorAll(`${sel}:not(.dragging-editor)`)];
+    if (els.length === 0) return;
+    const result = els.reduce((cl, ch) => {
+        const b = ch.getBoundingClientRect();
+        const o = y - b.top - b.height / 2;
+        return (o < 0 && o > cl.offset) ? { offset: o, element: ch } : cl;
+    }, { offset: Number.NEGATIVE_INFINITY });
+    const a = result.element || null;
+    if (a == null) c.appendChild(editorDragPlaceholder);
+    else c.insertBefore(editorDragPlaceholder, a);
+}
+
+function finalizeEditorDrop() {
+    if (!editorDragItem || !editorDragPlaceholder) return;
+    if (editorDragPlaceholder.parentNode) {
+        editorDragPlaceholder.parentNode.insertBefore(editorDragItem, editorDragPlaceholder);
+    }
+    const container = document.querySelector(editorDragContext ? editorDragContext.containerSelector : '#exercises-list');
+    if (container) {
+        const els = Array.from(container.querySelectorAll('.exercise-block:not(.dragging-editor)'));
+        const indices = els.map(el => parseInt(el.dataset.editorIndex)).filter(n => !isNaN(n));
+        if (indices.length > 0) {
+            const newExercises = indices.map(i => editorExercises[i]);
+            editorExercises = newExercises;
+            renderEditorExercises();
+        }
+    }
+    cleanupEditorDrag();
+}
+
+function cleanupEditorDrag() {
+    if (editorDragItem) {
+        editorDragItem.classList.remove('dragging-editor');
+        editorDragItem.style.top = '';
+        editorDragItem.style.transform = '';
+        editorDragItem = null;
+    }
+    if (editorDragPlaceholder) {
+        editorDragPlaceholder.remove();
+        editorDragPlaceholder = null;
+    }
+    editorDragContext = null;
+    document.body.classList.remove('no-scroll');
+    document.querySelectorAll('.drag-placeholder').forEach(p => p.classList.remove('active-drop'));
 }
 
 function toggleHomeStreak() {
@@ -5012,29 +5161,39 @@ function renderEditorExercises() {
     c.innerHTML = editorExercises.map((el, i) => {
         const isCollapsed = !!collapsedEditorElements[i];
         const dupBtn = `<button class="icon-btn dup-btn" onclick="event.stopPropagation(); duplicateEditorElement(${i})" aria-label="Дублировать">📋</button>`;
+        let header = '', body = '', extraClass = '';
+        let headerIcon = '';
         if (el.kind === 'warmup') {
+            headerIcon = '🔥';
+            extraClass = 'warmup-block';
             const mode = el.mode === 'free' ? 'free' : 'timer';
-            const header = `<div class="exercise-header"><div class="exercise-number">🔥</div><input type="text" class="exercise-name-input" value="Разминка" disabled><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
-            const body = `<div class="exercise-body"><div class="type-row"><label>Режим:</label><select class="select" onchange="updateElement(${i}, 'mode', this.value); renderEditorExercises();" style="flex:1;"><option value="timer" ${mode === 'timer' ? 'selected' : ''}>⏱ По таймеру</option><option value="free" ${mode === 'free' ? 'selected' : ''}>🕐 Свободно</option></select></div>${mode === 'timer' ? renderDurationRow(i, el, REST_PRESETS, 'Длительность:', false) : ''}</div>`;
-            return `<div class="exercise-block warmup-block ${isCollapsed ? 'collapsed' : ''}" onclick="onExerciseBlockClick(event, ${i})">${header}${body}</div>`;
-        }
-        if (el.kind === 'rest') {
+            header = `<div class="exercise-header"><div class="exercise-number">🔥</div><input type="text" class="exercise-name-input" value="Разминка" disabled><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
+            body = `<div class="exercise-body"><div class="type-row"><label>Режим:</label><select class="select" onchange="updateElement(${i}, 'mode', this.value); renderEditorExercises();" style="flex:1;"><option value="timer" ${mode === 'timer' ? 'selected' : ''}>⏱ По таймеру</option><option value="free" ${mode === 'free' ? 'selected' : ''}>🕐 Свободно</option></select></div>${mode === 'timer' ? renderDurationRow(i, el, REST_PRESETS, 'Длительность:', false) : ''}</div>`;
+        } else if (el.kind === 'rest') {
             const isWater = el.restType === 'water';
-            const header = `<div class="exercise-header"><div class="exercise-number">${isWater ? '💧' : '🛌'}</div><input type="text" class="exercise-name-input" value="${escapeHtml(isWater ? 'Необходимо попить воды' : 'Отдых')}" onchange="updateElement(${i}, 'name', this.value)" placeholder="Название"><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
-            const body = `<div class="exercise-body"><div class="type-row"><label>Тип:</label><select class="select" onchange="updateElement(${i}, 'restType', this.value); renderEditorExercises();"><option value="rest" ${!isWater ? 'selected' : ''}>🛌 Обычный отдых</option><option value="water" ${isWater ? 'selected' : ''}>💧 Необходимо попить воды</option></select></div>${renderDurationRow(i, el, REST_PRESETS, 'Длительность:')}</div>`;
-            return `<div class="exercise-block rest-block ${isWater ? 'water-type' : ''} ${isCollapsed ? 'collapsed' : ''}" onclick="onExerciseBlockClick(event, ${i})">${header}${body}</div>`;
+            headerIcon = isWater ? '💧' : '🛌';
+            extraClass = 'rest-block' + (isWater ? ' water-type' : '');
+            header = `<div class="exercise-header"><div class="exercise-number">${isWater ? '💧' : '🛌'}</div><input type="text" class="exercise-name-input" value="${escapeHtml(isWater ? 'Необходимо попить воды' : 'Отдых')}" onchange="updateElement(${i}, 'name', this.value)" placeholder="Название"><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
+            body = `<div class="exercise-body"><div class="type-row"><label>Тип:</label><select class="select" onchange="updateElement(${i}, 'restType', this.value); renderEditorExercises();"><option value="rest" ${!isWater ? 'selected' : ''}>🛌 Обычный отдых</option><option value="water" ${isWater ? 'selected' : ''}>💧 Необходимо попить воды</option></select></div>${renderDurationRow(i, el, REST_PRESETS, 'Длительность:')}</div>`;
+        } else {
+            const num = getExerciseNumber(editorExercises, i);
+            const exType = el.type || 'time';
+            headerIcon = num;
+            header = `<div class="exercise-header"><div class="exercise-number">${num}</div><input type="text" class="exercise-name-input" value="${escapeHtml(el.name)}" onchange="updateElement(${i}, 'name', this.value)" placeholder="Название"><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
+            body = `<div class="type-row"><label>Тип:</label><select class="select" onchange="updateElement(${i}, 'type', this.value); renderEditorExercises();"><option value="time" ${exType === 'time' ? 'selected' : ''}>⏱ Секундомер</option><option value="timer" ${exType === 'timer' ? 'selected' : ''}>⏳ Таймер</option><option value="reps" ${exType === 'reps' ? 'selected' : ''}>🔢 Повторы</option><option value="sets" ${exType === 'sets' ? 'selected' : ''}>🔁 Подходы</option></select>${exType === 'reps' ? `<input type="number" value="${el.targetReps || 10}" min="1" step="1" onchange="updateElement(${i}, 'targetReps', parseInt(this.value)||10);"><span style="color:var(--muted); font-size:0.85rem;">повт.</span>` : ''}${exType === 'sets' ? `<label style="margin-left:6px;">Подходов:</label><input type="number" value="${el.setsCount || 3}" min="1" step="1" onchange="updateElement(${i}, 'setsCount', Math.max(1, parseInt(this.value)||3)); renderEditorExercises();">` : ''}</div>`;
+            if (exType === 'timer') { body += renderTimerDurationRow(i, el); }
+            if (exType === 'sets') {
+                body += `<div class="type-row"><label>В подходе:</label><select class="select" onchange="updateElement(${i}, 'setMode', this.value); renderEditorExercises();" style="flex:1;"><option value="reps" ${(el.setMode||'reps') === 'reps' ? 'selected' : ''}>🔢 Повторы</option><option value="time" ${el.setMode === 'time' ? 'selected' : ''}>⏱ Время</option></select>${(el.setMode||'reps') === 'reps' ? `<input type="number" value="${el.targetReps || 10}" min="1" step="1" onchange="updateElement(${i}, 'targetReps', parseInt(this.value)||10);"><span style="color:var(--muted); font-size:0.85rem;">повт.</span>` : `<input type="number" value="${el.setDuration || 45}" min="5" step="5" onchange="updateElement(${i}, 'setDuration', Math.max(5, parseInt(this.value)||45));"><span style="color:var(--muted); font-size:0.85rem;">сек</span>`}</div><div class="rest-row"><label>Отдых между:</label><input type="number" value="${el.restBetweenSets || 60}" min="0" step="5" onchange="updateElement(${i}, 'restBetweenSets', parseInt(this.value)||0);" style="width:70px; margin:0; padding:8px;"><span style="color:var(--muted); font-size:0.85rem;">сек</span></div>`;
+            }
+            body += `<div class="notes-row"><label>📝</label><textarea class="input" placeholder="Постоянная заметка" onchange="updateElement(${i}, 'notes', this.value)" style="margin:0;">${escapeHtml(el.notes || '')}</textarea></div>`;
         }
-        const num = getExerciseNumber(editorExercises, i);
-        const exType = el.type || 'time';
-        let body = `<div class="type-row"><label>Тип:</label><select class="select" onchange="updateElement(${i}, 'type', this.value); renderEditorExercises();"><option value="time" ${exType === 'time' ? 'selected' : ''}>⏱ Секундомер</option><option value="timer" ${exType === 'timer' ? 'selected' : ''}>⏳ Таймер</option><option value="reps" ${exType === 'reps' ? 'selected' : ''}>🔢 Повторы</option><option value="sets" ${exType === 'sets' ? 'selected' : ''}>🔁 Подходы</option></select>${exType === 'reps' ? `<input type="number" value="${el.targetReps || 10}" min="1" step="1" onchange="updateElement(${i}, 'targetReps', parseInt(this.value)||10);"><span style="color:var(--muted); font-size:0.85rem;">повт.</span>` : ''}${exType === 'sets' ? `<label style="margin-left:6px;">Подходов:</label><input type="number" value="${el.setsCount || 3}" min="1" step="1" onchange="updateElement(${i}, 'setsCount', Math.max(1, parseInt(this.value)||3)); renderEditorExercises();">` : ''}</div>`;
-        if (exType === 'timer') { body += renderTimerDurationRow(i, el); }
-        if (exType === 'sets') {
-            body += `<div class="type-row"><label>В подходе:</label><select class="select" onchange="updateElement(${i}, 'setMode', this.value); renderEditorExercises();" style="flex:1;"><option value="reps" ${(el.setMode||'reps') === 'reps' ? 'selected' : ''}>🔢 Повторы</option><option value="time" ${el.setMode === 'time' ? 'selected' : ''}>⏱ Время</option></select>${(el.setMode||'reps') === 'reps' ? `<input type="number" value="${el.targetReps || 10}" min="1" step="1" onchange="updateElement(${i}, 'targetReps', parseInt(this.value)||10);"><span style="color:var(--muted); font-size:0.85rem;">повт.</span>` : `<input type="number" value="${el.setDuration || 45}" min="5" step="5" onchange="updateElement(${i}, 'setDuration', Math.max(5, parseInt(this.value)||45));"><span style="color:var(--muted); font-size:0.85rem;">сек</span>`}</div><div class="rest-row"><label>Отдых между:</label><input type="number" value="${el.restBetweenSets || 60}" min="0" step="5" onchange="updateElement(${i}, 'restBetweenSets', parseInt(this.value)||0);" style="width:70px; margin:0; padding:8px;"><span style="color:var(--muted); font-size:0.85rem;">сек</span></div>`;
-        }
-        body += `<div class="notes-row"><label>📝</label><textarea class="input" placeholder="Постоянная заметка" onchange="updateElement(${i}, 'notes', this.value)" style="margin:0;">${escapeHtml(el.notes || '')}</textarea></div>`;
-        const header = `<div class="exercise-header"><div class="exercise-number">${num}</div><input type="text" class="exercise-name-input" value="${escapeHtml(el.name)}" onchange="updateElement(${i}, 'name', this.value)" placeholder="Название"><div class="exercise-controls"><button class="icon-btn" onclick="moveElement(${i},-1)" ${i===0?'disabled':''} aria-label="Вверх"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button><button class="icon-btn" onclick="moveElement(${i},1)" ${i===editorExercises.length-1?'disabled':''} aria-label="Вниз"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>${dupBtn}<button class="icon-btn delete-btn" onclick="removeElement(${i})" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></div>`;
-        return `<div class="exercise-block ${isCollapsed ? 'collapsed' : ''}" onclick="onExerciseBlockClick(event, ${i})">${header}<div class="exercise-body">${body}</div></div>`;
+        return `<div class="exercise-block ${extraClass} ${isCollapsed ? 'collapsed' : ''}" onclick="onExerciseBlockClick(event, ${i})" data-editor-index="${i}">${header}<div class="exercise-body">${body}</div></div>`;
     }).join('');
+    const container = document.getElementById('exercises-list');
+    container.querySelectorAll('.exercise-block').forEach(el => {
+        const idx = parseInt(el.dataset.editorIndex);
+        initEditorDragAndDrop(el, idx, '#exercises-list');
+    });
 }
 function addExercise() { editorExercises.push({ kind: 'exercise', name: '', type: 'time', notes: '', targetReps: 10, setsCount: 3, setMode: 'reps', setDuration: 45, restBetweenSets: 60, timerDuration: 60 }); renderEditorExercises(); }
 function addWarmup() { editorExercises.push({ kind: 'warmup', name: 'Разминка', duration: 180, mode: 'timer' }); renderEditorExercises(); }
@@ -7353,7 +7512,11 @@ function openRunQueueEditor() {
             const isDone = !!el._done;
             const isSkipped = !!el._skipped;
             const isRemoved = !!el._removed;
-            const isPast = (el._origIndex >= 0 && el._origIndex < runState.index) || isDone || isSkipped;
+            let isPastWarmup = false;
+            if (el.kind === 'warmup' && el._origIndex >= 0 && el._origIndex < runState.index) {
+                isPastWarmup = true;
+            }
+            const isPast = (el._origIndex >= 0 && el._origIndex < runState.index) || isDone || isSkipped || isPastWarmup;
 
             if (el.kind === 'exercise') {
                 if (el.type === 'sets') sub = `${el.setsCount || 3}×${el.setMode === 'time' ? (el.setDuration || 45) + 'с' : (el.targetReps || 10) + 'п'}`;
@@ -7371,11 +7534,11 @@ function openRunQueueEditor() {
 
             let statusBadge = '';
             if (isCurrent) statusBadge = `<span style="font-size:0.68rem; background:var(--accent); color:#0a0a10; padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">СЕЙЧАС</span>`;
-            else if (isDone) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">✓</span>`;
+            else if (isDone || (isPastWarmup && !isCurrent)) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">✓</span>`;
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
             let strike = '';
-            if (isDone || isSkipped) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
+            if (isDone || isSkipped || isPastWarmup) strike = 'text-decoration: line-through; color: var(--muted); opacity: 0.7;';
             if (isRemoved) strike = 'color: var(--muted); opacity: 0.6; background: var(--card-3);';
 
             let actionBtn = '';
