@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.2.1">
+<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.3.1">
 <meta name="theme-color" content="#0a0a10">
-<title>Fit Trainer Pro v1.2.1</title>
+<title>Fit Trainer Pro v1.3.1</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%230a0a10'/%3E%3Ctext x='50' y='75' font-size='75' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 
 <link rel="manifest" href='data:application/manifest+json,{"name":"Fit Trainer","short_name":"FitTrainer","start_url":".","display":"standalone","background_color":"%230a0a10","theme_color":"%230a0a10","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2750%27 fill=%27%230a0a10%27/%3E%3Ctext x=%2796%27 y=%27140%27 font-size=%27140%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27120%27 fill=%27%230a0a10%27/%3E%3Ctext x=%27256%27 y=%27380%27 font-size=%27380%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
@@ -666,9 +666,35 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 <div class="app-container">
 
 <div id="screen-home" class="screen active">
-    <h1>💪 Fit Trainer Pro v1.2.1</h1>
+    <h1>💪 Fit Trainer Pro v1.3.1</h1>
     <div id="streak-banner-home"></div>
     <div id="home-today-banner" style="display:none;"></div>
+    <div id="quick-start-section" class="card" style="margin-bottom:16px; padding:14px; border:1px solid var(--border-soft); box-shadow:var(--shadow-sm);">
+        <div class="activity-card-header" onclick="toggleQuickStart()" style="margin-bottom:0; padding:2px 0;">
+            <div class="activity-card-title" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); font-weight:600;">⚡ Быстрый старт</div>
+            <button type="button" class="icon-toggle-btn" id="quick-start-toggle-btn" onclick="event.stopPropagation(); toggleQuickStart();" aria-label="Свернуть" style="width:40px; height:40px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+        </div>
+        <div id="quick-start-body" class="activity-card-body" style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:12px;">
+            <button class="menu-btn" style="min-height:72px; padding:12px;" onclick="quickStartPreset('tabata')" data-color="fire">
+                <span class="icon" style="font-size:1.3rem;">⚡</span>
+                <div><div style="font-size:0.9rem;">Tabata</div><div class="sub">20с / 10с × 8</div></div>
+            </button>
+            <button class="menu-btn" style="min-height:72px; padding:12px;" onclick="quickStartPreset('emom')" data-color="accent">
+                <span class="icon" style="font-size:1.3rem;">⏱</span>
+                <div><div style="font-size:0.9rem;">EMOM 10</div><div class="sub">Каждую минуту</div></div>
+            </button>
+            <button class="menu-btn" style="min-height:72px; padding:12px;" onclick="quickStartPreset('hiit4020')" data-color="primary">
+                <span class="icon" style="font-size:1.3rem;">🔥</span>
+                <div><div style="font-size:0.9rem;">40/20 HIIT</div><div class="sub">8 раундов</div></div>
+            </button>
+            <button class="menu-btn" style="min-height:72px; padding:12px;" onclick="quickStartPreset('custom')" data-color="blue">
+                <span class="icon" style="font-size:1.3rem;">🎯</span>
+                <div><div style="font-size:0.9rem;">Свой таймер</div><div class="sub">Быстрый интервал</div></div>
+            </button>
+        </div>
+    </div>
     <div class="menu-grid">
         <button class="menu-btn menu-wide" id="menu-btn-workouts" data-color="primary" onclick="showScreen('screen-workouts')">
             <span class="icon">🏋️</span>
@@ -1104,7 +1130,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <summary>ℹ️ О приложении</summary>
         <div class="group-body">
             <div class="card" style="color:var(--muted); font-size:0.85rem; line-height:1.6;">
-                <strong style="color:var(--text);">Fit Trainer Pro v1.2.1</strong><br>
+                <strong style="color:var(--text);">Fit Trainer Pro v1.3.1</strong><br>
                 Данные хранятся локально.<br>
                 <span id="error-log-info" style="display:block; margin-top:8px;"></span>
             </div>
@@ -1274,6 +1300,7 @@ async function importDataFromJson(text) {
         if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
         if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
         if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
+        if (typeof DB.settings.quickStartCollapsed !== 'boolean') DB.settings.quickStartCollapsed = false;
         saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
         validateAndMigrateDB();
         applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -1478,7 +1505,8 @@ DB.settings = Object.assign({
     weekMetric: 'work',
     weekRange: 8,
     homeStreakCollapsed: false,
-    homePlanCollapsed: false
+    homePlanCollapsed: false,
+    quickStartCollapsed: false
 }, DB.settings);
 if ('announceConfirm' in DB.settings) delete DB.settings.announceConfirm;
 if (!Array.isArray(DB.settings.hiddenBuiltins)) DB.settings.hiddenBuiltins = [];
@@ -1514,6 +1542,7 @@ if (typeof DB.settings.weekMetric !== 'string') DB.settings.weekMetric = 'work';
 if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
 if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
 if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
+if (typeof DB.settings.quickStartCollapsed !== 'boolean') DB.settings.quickStartCollapsed = false;
 if (!Array.isArray(DB.measurements)) DB.measurements = [];
 const HIDEABLE_MENU_KEYS = ['templates','programs','activity','history','measurements'];
 if (!Array.isArray(DB.settings.hiddenMenuItems)) DB.settings.hiddenMenuItems = [];
@@ -1676,7 +1705,7 @@ function processNextConfirm() {
         if (s) s.style.transform = 'translateX(100%)';
         overlay.style.opacity = '0';
         item.resolve(r);
-        setTimeout(() => { try { overlay.remove(); } catch(e) {} setTimeout(() => processNextConfirm(), 50); }, 200);
+        setTimeout(() => { try { overlay.remove(); } catch(e) {} try { updateNotifGrabber(); } catch(e) {} setTimeout(() => processNextConfirm(), 50); }, 200);
     };
     overlay.querySelector('#cc-ok').onclick = () => finish(true);
     overlay.querySelector('#cc-cancel').onclick = () => finish(false);
@@ -1731,7 +1760,7 @@ function processNextAskReps() {
         const s = overlay.querySelector('.notif-side-sheet');
         if (s) s.style.transform = 'translateX(100%)';
         overlay.style.opacity = '0';
-        setTimeout(() => { try { overlay.remove(); } catch(e) {} askRepsBusy = false; item.resolve(val); setTimeout(() => processNextAskReps(), 50); }, 200);
+        setTimeout(() => { try { overlay.remove(); } catch(e) {} try { updateNotifGrabber(); } catch(e) {} askRepsBusy = false; item.resolve(val); setTimeout(() => processNextAskReps(), 50); }, 200);
     };
     overlay.querySelector('#ask-reps-save').onclick = () => finish(Math.max(0, Math.min(999, parseInt(input.value) || 0)));
     overlay.querySelector('#ask-reps-cancel').onclick = () => finish(null);
@@ -3003,9 +3032,9 @@ function saveRunState() {
         warmupSeconds: runState.warmupSeconds || 0,
         warmupDuration: runState.warmupDuration || 0,
         warmupElapsedBeforePause: getCurrentElapsed('warmup'),
-        startTime: runState.startTime.getTime(),
+        startTime: runState.startTime instanceof Date ? runState.startTime.getTime() : (runState.startTime || Date.now()),
         totalWorkTime: runState.totalWorkTime,
-        exerciseTimes: [...runState.exerciseTimes],
+        exerciseTimes: [...(runState.exerciseTimes || [])],
         lastFinishedWorkElapsed: runState.lastFinishedWorkElapsed,
         workElapsedBeforePause: getCurrentElapsed('work'),
         restElapsedBeforePause: getCurrentElapsed('rest'),
@@ -3016,6 +3045,11 @@ function saveRunState() {
         isDeload: runState.isDeload || false,
         deloadPercent: runState.deloadPercent || 35,
         removedExercises: runState._removedExercises || [],
+        isTemp: !!runState.isTemp,
+        // Для быстрых стартов сохраняем полный объект тренировки (её нет в DB.workouts)
+        workoutSnapshot: (runState.isTemp || !(DB.workouts || []).find(x => x.id === runState.workout.id))
+            ? JSON.parse(JSON.stringify(runState.workout))
+            : null,
         savedAt: savedAtTs
     };
     const serialized = JSON.stringify(snapshot);
@@ -3090,9 +3124,11 @@ function getActiveNotifications() {
     const saved = loadSavedRunState();
     if (saved && saved.workoutId && saved.phase && saved.phase !== 'finish') {
         const w = DB.workouts.find(x => x.id === saved.workoutId);
-        if (w) {
+        const hasTemp = !!(saved.isTemp || saved.workoutSnapshot);
+        if (w || hasTemp) {
             const isDismissed = !!(dismissed['resume'] && dismissed['resume'] > now);
-            list.push({ type: 'resume', key: 'resume', title: saved.workoutName || w.name, dismissed: isDismissed });
+            const title = saved.workoutName || (w && w.name) || (saved.workoutSnapshot && saved.workoutSnapshot.name) || 'Тренировка';
+            list.push({ type: 'resume', key: 'resume', title: title, dismissed: isDismissed, isTemp: hasTemp });
         }
     }
     if (DB.settings.notifyScheduledWorkouts) {
@@ -3132,17 +3168,29 @@ function getVisibleNotifications() { return getActiveNotifications().filter(n =>
 function updateNotifGrabber() {
     const grabber = document.getElementById('notif-grabber');
     if (!grabber) return;
-    if (document.querySelector('.notif-side-overlay') || document.querySelector('.bottom-sheet-overlay') || document.querySelector('.multi-tab-warning')) { grabber.style.display = 'none'; return; }
+    // Hide only while an overlay is open or on run/editor screens
+    if (document.querySelector('.notif-side-overlay') || document.querySelector('.bottom-sheet-overlay') || document.querySelector('.multi-tab-warning')) {
+        grabber.style.display = 'none';
+        return;
+    }
     const active = document.querySelector('.screen.active');
     const activeId = active ? active.id : '';
-    if (NO_NAV_SCREENS.includes(activeId)) { grabber.style.display = 'none'; return; }
+    if (typeof NO_NAV_SCREENS !== 'undefined' && NO_NAV_SCREENS.includes(activeId)) {
+        grabber.style.display = 'none';
+        return;
+    }
+    // Always show grabber on main screens (even if no notifications)
     grabber.style.display = 'flex';
-    cleanupDismissedNotifications();
+    try { cleanupDismissedNotifications(); } catch(e) {}
     const visible = getVisibleNotifications();
     const badge = grabber.querySelector('.notif-grabber-badge');
     if (badge) {
-        if (visible.length > 0) { badge.textContent = String(visible.length); badge.style.display = 'flex'; }
-        else { badge.style.display = 'none'; }
+        if (visible.length > 0) {
+            badge.textContent = String(visible.length);
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
     }
 }
 function initNotifGrabber() {
@@ -3177,18 +3225,21 @@ function openNotifCenter() {
         if (streaks.length > 0) {
             html += `<div class="notif-section-title">🔥 Стрик</div>`;
             streaks.forEach(r => {
-                html += `<div class="notif-item ${r.dismissed ? 'disabled' : ''}"><div class="notif-status">🔥</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">${r.dismissed ? '🔕 Не напоминать' : 'Вечернее напоминание'}</div></div><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
+                if (r.dismissed) {
+                    html += `<div class="notif-item disabled"><div class="notif-status">🔥</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">🔕 Не напоминать</div></div><button class="icon-btn" onclick="enableNotification('${r.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700;">🔔</button></div>`;
+                } else {
+                    html += `<div class="notif-item"><div class="notif-status">🔥</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">Вечернее напоминание</div></div><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
+                }
             });
         }
-        if (digests.length > 0) {
+        // Итоги недели: скрытые (dismissed) НЕ показываем как «отключённые» —
+        // крестик просто убирает уведомление до следующего окна показа
+        const activeDigests = digests.filter(r => !r.dismissed);
+        if (activeDigests.length > 0) {
             html += `<div class="notif-section-title">📊 Итоги</div>`;
-            digests.forEach(r => {
+            activeDigests.forEach(r => {
                 const weekKey = r.weekStartKey || (r.key && r.key.indexOf('digest-') === 0 ? r.key.slice(7) : '');
-                if (r.dismissed) {
-                    html += `<div class="notif-item disabled"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">🔕 Не напоминать</div></div><div style="display:flex; gap:4px;"><button class="icon-btn" onclick="notifOpenDigest('${weekKey}')" aria-label="Открыть" style="background:var(--primary); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">📊</button><button class="icon-btn" onclick="enableNotification('${r.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700;">🔔</button></div></div>`;
-                } else {
-                    html += `<div class="notif-item"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name" style="cursor:pointer;" onclick="notifOpenDigest('${weekKey}')">${escapeHtml(r.title)}</div><div class="notif-sub">Нажмите, чтобы посмотреть</div></div><button class="icon-btn" onclick="dismissDigestNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
-                }
+                html += `<div class="notif-item"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name" style="cursor:pointer;" onclick="notifOpenDigest('${weekKey}')">${escapeHtml(r.title)}</div><div class="notif-sub">Нажмите, чтобы посмотреть</div></div><button class="icon-btn" onclick="dismissDigestNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
             });
         }
         if (resumes.length > 0) {
@@ -3214,8 +3265,19 @@ function openNotifCenter() {
         }
     }
     const hasDismissed = all.some(n => n.dismissed);
+    const hasVisible = all.some(n => !n.dismissed);
     const hours = DB.settings.snoozeDuration || 2;
     const snoozeLabel = hours === 24 ? 'Позже (до завтра)' : `Позже (${hours} ч)`;
+    // Кнопки: если есть активные — «Позже»; если все отложены/выключены — только «Включить все»
+    let actionBtns = '';
+    if (hasVisible) {
+        actionBtns += `<button class="btn ghost" onclick="snoozeAllNotifications(this)">${snoozeLabel}</button>`;
+        if (hasDismissed) {
+            actionBtns += `<button class="btn ghost" onclick="enableAllNotifications(this)" style="color:var(--accent);">🔔 Включить все</button>`;
+        }
+    } else if (hasDismissed) {
+        actionBtns += `<button class="btn ghost" onclick="enableAllNotifications(this)" style="color:var(--accent);">🔔 Включить все</button>`;
+    }
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     ov.innerHTML = `<div class="notif-side-sheet">
@@ -3227,8 +3289,7 @@ function openNotifCenter() {
         </div>
         <div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right: 4px;">${html}</div>
         <div class="sheet-fixed-bottom" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
-            <button class="btn ghost" onclick="snoozeAllNotifications(this)">${snoozeLabel}</button>
-            ${hasDismissed ? `<button class="btn ghost" onclick="enableAllNotifications(this)" style="color:var(--accent);">🔔 Включить все</button>` : ''}
+            ${actionBtns}
             <button class="btn ghost" onclick="openNotifSettings(this)" style="font-size:0.9rem;">⚙️ Настройки уведомлений</button>
         </div>
     </div>`;
@@ -3256,21 +3317,29 @@ function dismissNotification(key, btn) {
     if (ov) { ov.remove(); updateNotifGrabber(); }
     showToast('🔕 Напомним через неделю');
 }
-async function dismissDigestNotification(key, btn) {
-    const ok = await customConfirm('Итоги недели будут закрыты.\n\nВы сможете снова открыть их из истории уведомлений или при следующем появлении.', {
-        title: 'Закрыть итоги недели?',
-        okText: 'Закрыть',
-        cancelText: 'Отмена',
-        danger: false
-    });
-    if (!ok) return;
+function dismissDigestNotification(key, btn) {
+    // Просто скрыть уведомление до конца текущего окна показа (до вторника 00:00).
+    // НЕ отключает настройку «Итоги недели» и не показывает пункт как «отключённый».
     DB.settings.dismissedUntil = DB.settings.dismissedUntil || {};
-    DB.settings.dismissedUntil[key] = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const nowD = new Date();
+    const day = nowD.getDay(); // 0=вс, 1=пн
+    const daysUntilTue = day === 0 ? 2 : 1;
+    const until = new Date(nowD);
+    until.setDate(until.getDate() + daysUntilTue);
+    until.setHours(0, 0, 0, 0);
+    DB.settings.dismissedUntil[key] = until.getTime();
     saveDB('settings');
     logNotifHistory({ type: 'dismiss', key, title: 'Итоги недели' });
-    const ov = btn.closest('.notif-side-overlay');
-    if (ov) { ov.remove(); updateNotifGrabber(); }
-    showToast('🔕 Итоги недели закрыты');
+    const ov = btn && btn.closest ? btn.closest('.notif-side-overlay') : null;
+    if (ov) {
+        const still = getVisibleNotifications();
+        ov.remove();
+        updateNotifGrabber();
+        if (still.length > 0) openNotifCenter();
+    } else {
+        updateNotifGrabber();
+    }
+    showToast('Итоги недели скрыты');
 }
 function enableNotification(key, btn) {
     if (!DB.settings.dismissedUntil) DB.settings.dismissedUntil = {};
@@ -3310,7 +3379,8 @@ function notifOpenResume(btn) {
     if (!saved) return;
     if (!['ready','work','rest','countdown','warmup'].includes(saved.phase)) { showToast('Некорректное состояние'); clearSavedRunState(); return; }
     const w = DB.workouts.find(x => x.id === saved.workoutId);
-    if (!w) { showToast('Тренировка удалена'); clearSavedRunState(); return; }
+    const hasTemp = !!(saved.isTemp || saved.workoutSnapshot);
+    if (!w && !hasTemp) { showToast('Тренировка удалена'); clearSavedRunState(); return; }
     restoreRunState(saved);
 }
 function notifCancelResume(btn) {
@@ -3320,7 +3390,8 @@ function notifCancelResume(btn) {
     if (runState) { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); runState = null; }
     disableExitProtection();
     showToast('❌ Тренировка отменена');
-    showScreen('screen-workouts');
+    // Возврат на главный — отмена из уведомлений не должна кидать в список тренировок
+    showScreen('screen-home');
 }
 function snoozeAllNotifications(btn) {
     const list = getVisibleNotifications();
@@ -3370,20 +3441,25 @@ function showNotifHistory() {
 
 async function offerResumeSavedSession() {
     const saved = loadSavedRunState();
-    if (!saved || !saved.workoutId || saved.phase === 'finish') return;
-    const workout = DB.workouts.find(w => w.id === saved.workoutId);
-    if (!workout) { clearSavedRunState(); return; }
+    if (!saved || !saved.workoutId || saved.phase === 'finish') { clearSavedRunState(); return; }
     if (!['ready','work','rest','countdown','warmup'].includes(saved.phase)) { clearSavedRunState(); return; }
+    const workout = DB.workouts.find(w => w.id === saved.workoutId);
+    const hasTemp = !!(saved.isTemp || saved.workoutSnapshot);
+    if (!workout && !hasTemp) { clearSavedRunState(); return; }
+    const name = saved.workoutName || (workout && workout.name) || (saved.workoutSnapshot && saved.workoutSnapshot.name) || 'Тренировка';
     const ageSec = saved.savedAt ? (Date.now() - saved.savedAt) / 1000 : 0;
     const age = saved.savedAt ? ` (${formatAge(ageSec)})` : '';
-    const ok = await customConfirm(`Найдена незавершённая тренировка:\n«${saved.workoutName}»${age}\n\nПродолжить?`, {
+    const ok = await customConfirm(`Найдена незавершённая тренировка:\n«${name}»${age}\n\nПродолжить?`, {
         title: 'Продолжить тренировку?', okText: '▶ Продолжить', cancelText: '✕ Отменить', danger: false
     });
     if (ok === true) restoreRunState(saved);
     else if (ok === false) { clearSavedRunState(); showToast('❌ Тренировка отменена'); }
 }
 function restoreRunState(saved) {
-    const workout = DB.workouts.find(w => w.id === saved.workoutId);
+    let workout = DB.workouts.find(w => w.id === saved.workoutId);
+    if (!workout && saved.workoutSnapshot) {
+        workout = saved.workoutSnapshot;
+    }
     if (!workout) { clearSavedRunState(); return; }
     let restoredPhase = saved.phase, restoredWarmupFinished = false, restoredWarmupPaused = false;
     if (saved.phase === 'warmup') {
@@ -3418,7 +3494,8 @@ function restoreRunState(saved) {
         isMuted: saved.isMuted || false,
         isDeload: saved.isDeload || false,
         deloadPercent: saved.deloadPercent || 35,
-        _removedExercises: saved.removedExercises || []
+        _removedExercises: saved.removedExercises || [],
+        isTemp: !!(saved.isTemp || saved.workoutSnapshot)
     };
     if (runState.countdownInterval) { try { clearInterval(runState.countdownInterval); } catch(e) {} runState.countdownInterval = null; }
     document.getElementById('run-title').innerText = workout.name;
@@ -3434,6 +3511,7 @@ function restoreRunState(saved) {
         const timerEl = document.getElementById('warmup-timer');
         if (timerEl) { if (runState.warmupMode === 'free') timerEl.innerText = formatTime(getCurrentElapsed('warmup')); else timerEl.innerText = formatTime(getRemainingTime('warmup')); }
     }
+    runReturnScreen = (saved.isTemp || saved.workoutSnapshot) ? 'screen-home' : 'screen-workouts';
     showScreen('screen-run');
     ensureTicker();
     showToast('▶ Тренировка на паузе. Нажмите «Продолжить»', 4000);
@@ -3614,7 +3692,7 @@ function showScreen(id) {
     document.querySelector('.app-container').scrollTop = 0;
     applyNavVisibility();
     if (id !== 'screen-settings' && previewCtx) { try { previewCtx.close(); } catch(e) {} previewCtx = null; }
-    try { if (id === 'screen-home') { renderHomeTodayBanner(); renderStreakBanner(); applyHomeMenuVisibility(); updateFooter(); } } catch(e) { console.error('[showScreen home]', e); }
+    try { if (id === 'screen-home') { if (typeof ensureNoStuckRunState === 'function') ensureNoStuckRunState(); renderHomeTodayBanner(); renderStreakBanner(); applyHomeMenuVisibility(); if (typeof applyQuickStartCollapsed === 'function') applyQuickStartCollapsed(); updateFooter(); } } catch(e) { console.error('[showScreen home]', e); }
     try { if (id === 'screen-workouts') renderWorkoutsList(); } catch(e) { console.error('[showScreen workouts]', e); }
     try { if (id === 'screen-history') renderHistory(); } catch(e) { console.error('[showScreen history]', e); }
     try { if (id === 'screen-settings') { renderSettings(); const searchEl = document.getElementById('settings-search'); if (searchEl) { searchEl.value = ''; filterSettings(''); } } } catch(e) { console.error('[showScreen settings]', e); }
@@ -5303,6 +5381,7 @@ function saveCurrentRunAsTemplate() {
 }
 
 let runState = null;
+let runReturnScreen = 'screen-home';
 const RING_CIRCUMFERENCE = 2 * Math.PI * 54;
 function ensureTicker() {
     if (!runState) return;
@@ -5390,8 +5469,17 @@ function calcProgress() {
 let startWorkoutInProgress = false;
 async function startWorkout(id, isDeload) {
     if (startWorkoutInProgress) return;
-    if (runState && runState.phase !== 'finish') { showToast('⚠️ Тренировка уже запущена'); return; }
-    if (runState && runState.phase === 'finish') { runState = null; }
+    // Clear stuck finish / orphan state (same reliability as 1.2.1)
+    if (typeof ensureNoStuckRunState === 'function') ensureNoStuckRunState();
+    if (runState && runState.phase === 'finish') { runState = null; clearSavedRunState(); }
+    if (runState && runState.phase && !['ready','work','rest','countdown','warmup','finish'].includes(runState.phase)) {
+        forceClearRunState();
+    }
+    if (runState && runState.phase !== 'finish' && runState.phase) {
+        showToast('⚠️ Тренировка уже запущена');
+        return;
+    }
+    if (runState) { runState = null; }
     startWorkoutInProgress = true;
     try {
         _restoreRunHeaderForNewWorkout();
@@ -5400,11 +5488,12 @@ async function startWorkout(id, isDeload) {
         const saved = loadSavedRunState();
         if (saved && saved.workoutId && saved.phase && saved.phase !== 'finish') {
             const sw = DB.workouts.find(x => x.id === saved.workoutId);
-            if (['ready','work','rest','countdown','warmup'].includes(saved.phase)) {
+            const hasTemp = !!(saved.isTemp || saved.workoutSnapshot);
+            if (['ready','work','rest','countdown','warmup'].includes(saved.phase) && (sw || hasTemp)) {
                 const ageSec = saved.savedAt ? (Date.now() - saved.savedAt) / 1000 : 0;
                 const age = saved.savedAt ? ` (${formatAge(ageSec)})` : '';
                 const choice = await showStartNewConfirm(saved, age);
-                if (choice === 'resume') { if (sw) { restoreRunState(saved); return; } else { showToast('Тренировка удалена'); clearSavedRunState(); } }
+                if (choice === 'resume') { restoreRunState(saved); return; }
                 else if (choice === 'new') {
                     if (runState) { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); runState = null; }
                     clearSavedRunState(); disableExitProtection();
@@ -5461,6 +5550,7 @@ async function startWorkout(id, isDeload) {
             _removedExercises: []
         };
         document.getElementById('run-title').innerText = w.name + (deloadPercent > 0 ? ' 🏷' : '');
+        runReturnScreen = 'screen-workouts';
         acquireWakeLock(); enableExitProtection();
         renderRun(); showScreen('screen-run'); saveRunState();
         if (w.autoStart) setTimeout(() => {
@@ -5974,11 +6064,11 @@ function _updateWorkTimerRing(el, t) {
         const ringCls = runState.workPaused ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
         setRingProgress('ring-work', pct, ringCls);
     }
-    if (remaining > 0 && remaining <= 5 && !runState.timerBeepPlayed && !runState.workPaused) {
+    if (remaining > 0 && remaining <= 5 && !runState.timerBeepPlayed && !runState.workPaused && !runState._menuOpen) {
         runState.timerBeepPlayed = true;
         announceFinalCount(remaining);
     }
-    if (remaining <= 0 && !runState.timerFinished && !runState.workPaused && !finishExerciseInProgress) {
+    if (remaining <= 0 && !runState.timerFinished && !runState.workPaused && !runState._menuOpen && !finishExerciseInProgress) {
         onExerciseTimerFinished();
     }
 }
@@ -5991,7 +6081,7 @@ function _updateSetTimeRing(el, t) {
     const ringCls = (runState.workPaused || runState._menuOpen) ? 'paused' : (remaining <= 5 ? 'danger' : 'work');
     if (runState._menuOpen) { if (t) t.style.color = 'var(--warn)'; setRingProgress('ring-work', pct, 'paused'); }
     else { if (t) t.style.color = ''; setRingProgress('ring-work', pct, ringCls); }
-    if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !finishExerciseInProgress) {
+    if (remaining <= 0 && !runState.setFinishing && !runState.workPaused && !runState._menuOpen && !finishExerciseInProgress) {
         runState.setFinishing = true;
         Promise.resolve(finishExercise()).finally(() => { runState.setFinishing = false; });
     }
@@ -6391,15 +6481,64 @@ function hideAllPhases() {
     ['phase-ready','phase-countdown','phase-work','phase-rest','phase-warmup','phase-finish'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
 }
 async function confirmExit() {
-    if (!runState || runState.phase === 'finish') { showScreen('screen-workouts'); return true; }
+    if (!runState || runState.phase === 'finish') { goAfterRunEnd(); return true; }
+    // Pause timers while confirmation dialog is open (same behaviour as run menu / three-dots)
+    let pausedWork = false, pausedRest = false, pausedWarmup = false, pausedCountdown = false;
+    if (runState.phase === 'work' && !runState.workPaused) { pauseTimer('work'); pausedWork = true; }
+    if (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode) { pauseTimer('rest'); pausedRest = true; }
+    if (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished) { pauseTimer('warmup'); pausedWarmup = true; }
+    if (runState.phase === 'countdown' && runState.countdownInterval) {
+        try { clearInterval(runState.countdownInterval); } catch(e) {}
+        runState.countdownInterval = null;
+        pausedCountdown = true;
+    }
+    if (pausedWork || pausedRest || pausedWarmup || pausedCountdown) {
+        runState._exitConfirmPaused = { pausedWork, pausedRest, pausedWarmup, pausedCountdown };
+        runState._menuOpen = true; // визуально «на паузе»
+        renderRun();
+    }
     const ok = await customConfirm('Выйти из тренировки?\n\nПрогресс сохранится.', { title: 'Выйти из тренировки?', okText: '← Выйти', cancelText: 'Остаться', danger: true });
-    if (!ok) return false;
+    // Resume if user chose to stay
+    if (!ok) {
+        if (runState && runState._exitConfirmPaused) {
+            const p = runState._exitConfirmPaused;
+            runState._exitConfirmPaused = null;
+            runState._menuOpen = false;
+            if (p.pausedWork && runState.phase === 'work') resumeTimer('work');
+            if (p.pausedRest && runState.phase === 'rest') resumeTimer('rest');
+            if (p.pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
+            if (p.pausedCountdown && runState.phase === 'countdown') {
+                // возобновляем countdown с текущего значения
+                clearInterval(runState.countdownInterval);
+                runState.countdownInterval = setInterval(() => {
+                    if (!runState || runState.phase !== 'countdown') { clearInterval(runState.countdownInterval); return; }
+                    if (runState._menuOpen) return;
+                    runState.countdownValue--;
+                    if (runState.countdownValue > 0) {
+                        if (isVoiceMode() && !runState.isMuted) { if (runState.countdownValue <= 3) speakCritical(String(runState.countdownValue)); }
+                        else if (!runState.isMuted) playBeep(600, 0.1);
+                        renderRun();
+                    } else {
+                        clearInterval(runState.countdownInterval);
+                        runState.countdownInterval = null;
+                        if (isVoiceMode() && !runState.isMuted) setTimeout(() => startExerciseNow(), 500);
+                        else { if (!runState.isMuted) playBeep(900, 0.3); setTimeout(() => startExerciseNow(), 300); }
+                    }
+                }, 1000);
+            }
+            saveRunState();
+            renderRun();
+        }
+        return false;
+    }
+    // User confirmed exit
+    if (runState) { runState._exitConfirmPaused = null; runState._menuOpen = false; }
     stopTickInterval();
-    if (runState.countdownInterval) clearInterval(runState.countdownInterval);
+    if (runState && runState.countdownInterval) clearInterval(runState.countdownInterval);
     stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock();
     saveRunState(); disableExitProtection();
     runState = null;
-    showScreen('screen-workouts');
+    goAfterRunEnd();
     return true;
 }
 function fireConfetti() {
@@ -6418,6 +6557,262 @@ function fireConfetti() {
         }
     } catch(e) {}
 }
+
+// === Quick Start Presets (v1.3) ===
+function isWorkoutActive() {
+    // Active only if runState exists AND phase is a real running phase
+    if (!runState || !runState.phase) return false;
+    return ['ready','work','rest','countdown','warmup'].includes(runState.phase);
+}
+function forceClearRunState() {
+    try {
+        stopTickInterval();
+        stopRestAlarm();
+        stopExerciseAlarm();
+        releaseWakeLock();
+        disableExitProtection();
+    } catch(e) {}
+    runState = null;
+    clearSavedRunState();
+}
+function ensureNoStuckRunState() {
+    // 1) If phase is finish and we are not on run screen — clear
+    if (runState && runState.phase === 'finish') {
+        const onRun = document.getElementById('screen-run') && document.getElementById('screen-run').classList.contains('active');
+        if (!onRun) forceClearRunState();
+        return;
+    }
+    // 2) If runState claims to be active but user is on home/workouts and there is no open run UI — clear
+    if (runState && isWorkoutActive()) {
+        const onRun = document.getElementById('screen-run') && document.getElementById('screen-run').classList.contains('active');
+        if (!onRun) {
+            // Stale in-memory state (common after incomplete quick-start / navigation)
+            forceClearRunState();
+        }
+    }
+}
+
+function _quickStartToggleIcon(collapsed) {
+    return collapsed
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+}
+function toggleQuickStart() {
+    const body = document.getElementById('quick-start-body');
+    const btn = document.getElementById('quick-start-toggle-btn');
+    if (!body) return;
+    const collapsed = body.style.display === 'none';
+    const nextCollapsed = !collapsed;
+    body.style.display = nextCollapsed ? 'none' : 'grid';
+    if (btn) {
+        btn.innerHTML = _quickStartToggleIcon(nextCollapsed);
+        btn.setAttribute('aria-label', nextCollapsed ? 'Развернуть' : 'Свернуть');
+    }
+    try {
+        DB.settings.quickStartCollapsed = nextCollapsed;
+        saveDB('settings');
+    } catch(e) {}
+}
+function applyQuickStartCollapsed() {
+    const body = document.getElementById('quick-start-body');
+    const btn = document.getElementById('quick-start-toggle-btn');
+    if (!body) return;
+    const collapsed = !!(DB.settings && DB.settings.quickStartCollapsed);
+    body.style.display = collapsed ? 'none' : 'grid';
+    if (btn) {
+        btn.innerHTML = _quickStartToggleIcon(collapsed);
+        btn.setAttribute('aria-label', collapsed ? 'Развернуть' : 'Свернуть');
+    }
+}
+
+async function quickStartPreset(type) {
+    ensureNoStuckRunState();
+    if (isWorkoutActive()) {
+        showToast('⚠️ Тренировка уже запущена');
+        return;
+    }
+    if (runState) forceClearRunState();
+
+    // Если есть сохранённая незавершённая (в т.ч. быстрый старт) — спросить как в обычных
+    const saved = loadSavedRunState();
+    if (saved && saved.workoutId && saved.phase && saved.phase !== 'finish' &&
+        ['ready','work','rest','countdown','warmup'].includes(saved.phase)) {
+        const ageSec = saved.savedAt ? (Date.now() - saved.savedAt) / 1000 : 0;
+        const age = saved.savedAt ? ` (${formatAge(ageSec)})` : '';
+        const choice = await showStartNewConfirm(saved, age);
+        if (choice === 'resume') { restoreRunState(saved); return; }
+        if (choice === 'new') { clearSavedRunState(); disableExitProtection(); showToast('▶ Новая тренировка'); }
+        else if (choice === 'cancel') {
+            clearSavedRunState();
+            if (runState) { try { stopTickInterval(); stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock(); } catch(e) {} runState = null; }
+            disableExitProtection();
+            showToast('❌ Тренировка отменена');
+            return;
+        } else { return; }
+    }
+
+    let workout = null;
+    if (type === 'tabata') {
+        workout = { id: Date.now(), name: 'Tabata ⚡', autoStart: true, exercises: [] };
+        for (let i = 0; i < 8; i++) {
+            workout.exercises.push({ kind: 'exercise', name: 'Раунд ' + (i+1), type: 'timer', timerDuration: 20 });
+            if (i < 7) workout.exercises.push({ kind: 'rest', restType: 'rest', duration: 10 });
+        }
+    } else if (type === 'emom') {
+        workout = { id: Date.now(), name: 'EMOM 10 мин', autoStart: true, exercises: [] };
+        for (let i = 0; i < 10; i++) {
+            workout.exercises.push({ kind: 'exercise', name: 'Минута ' + (i+1), type: 'timer', timerDuration: 50 });
+            if (i < 9) workout.exercises.push({ kind: 'rest', restType: 'rest', duration: 10 });
+        }
+    } else if (type === 'hiit4020') {
+        workout = { id: Date.now(), name: 'HIIT 40/20', autoStart: true, exercises: [] };
+        for (let i = 0; i < 8; i++) {
+            workout.exercises.push({ kind: 'exercise', name: 'Работа ' + (i+1), type: 'timer', timerDuration: 40 });
+            if (i < 7) workout.exercises.push({ kind: 'rest', restType: 'rest', duration: 20 });
+        }
+    } else if (type === 'custom') {
+        openQuickTimerSheet();
+        return;
+    }
+    if (workout) startTempWorkout(workout);
+}
+
+function startTempWorkout(workout) {
+    ensureNoStuckRunState();
+    if (isWorkoutActive()) {
+        showToast('⚠️ Тренировка уже запущена');
+        return;
+    }
+    if (runState) forceClearRunState();
+    clearSavedRunState();
+
+    // FULL runState object — same shape as startWorkout (critical for renderRun / timers)
+    runState = {
+        workout: workout,
+        index: 0,
+        phase: 'ready',
+        currentSet: 1,
+        restPhase: null,
+        setResults: {},
+        exerciseNotes: {},
+        workoutNoteDraft: '',
+        currentExerciseWorkTime: 0,
+        lastSetElapsed: 0,
+        warmupFinished: false,
+        warmupBeepPlayed: false,
+        warmupMode: 'timer',
+        warmupSeconds: 0,
+        warmupDuration: 0,
+        warmupElapsedBeforePause: 0,
+        warmupStartTime: null,
+        warmupPaused: false,
+        countdownInterval: null,
+        restOvertimeInterval: null,
+        tickInterval: null,
+        workStartTime: null,
+        workElapsedBeforePause: 0,
+        workPaused: false,
+        restStartTime: null,
+        restElapsedBeforePause: 0,
+        restPaused: false,
+        restDuration: 0,
+        restBeepPlayed: false,
+        restFinished: false,
+        restOvertime: 0,
+        restBannerMode: false,
+        timerFinished: false,
+        startTime: new Date(),
+        totalWorkTime: 0,
+        lastFinishedWorkElapsed: 0,
+        exerciseTimes: [],
+        lastBeepTargetTime: undefined,
+        setFinishing: false,
+        countdownValue: 3,
+        workoutNameAnnounced: false,
+        _flowStarting: false,
+        isMuted: false,
+        timerBeepPlayed: false,
+        isDeload: false,
+        deloadPercent: 0,
+        _removedExercises: [],
+        isTemp: true
+    };
+
+    try {
+        const titleEl = document.getElementById('run-title');
+        if (titleEl) titleEl.innerText = workout.name || 'Быстрый старт';
+    } catch(e) {}
+
+    runReturnScreen = 'screen-home'; // быстрый старт всегда с главного
+    if (DB.settings && DB.settings.wakeLock) acquireWakeLock();
+    enableExitProtection();
+    try { _restoreRunHeaderForNewWorkout(); } catch(e) {}
+    renderRun();
+    showScreen('screen-run');
+    saveRunState();
+    if (workout.autoStart) {
+        setTimeout(function() {
+            if (runState && runState.phase === 'ready' && !runState._flowStarting) {
+                beginCurrentElementFlow(true);
+            }
+        }, 400);
+    }
+}
+
+function openQuickTimerSheet() {
+    if (hasOpenOverlay()) return;
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay';
+    ov.innerHTML = `<div class="notif-side-sheet">
+        <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+        <h2 class="sheet-title">🎯 Быстрый таймер</h2>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+                <label style="color:var(--muted); font-size:0.85rem;">Работа (сек)</label>
+                <input type="number" id="qt-work" class="input" value="40" min="5" max="600" style="margin:4px 0 0;">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85rem;">Отдых (сек)</label>
+                <input type="number" id="qt-rest" class="input" value="20" min="0" max="300" style="margin:4px 0 0;">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85rem;">Раундов</label>
+                <input type="number" id="qt-rounds" class="input" value="8" min="1" max="50" style="margin:4px 0 0;">
+            </div>
+            <div>
+                <label style="color:var(--muted); font-size:0.85rem;">Название (необяз.)</label>
+                <input type="text" id="qt-name" class="input" placeholder="Мой интервал" style="margin:4px 0 0;">
+            </div>
+        </div>
+        <button class="btn accent" onclick="startCustomQuickTimer()">▶ Старт</button>
+        <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button>
+    </div>`;
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+
+function startCustomQuickTimer() {
+    const work = Math.max(5, parseInt(document.getElementById('qt-work')?.value) || 40);
+    const rest = Math.max(0, parseInt(document.getElementById('qt-rest')?.value) || 20);
+    const rounds = Math.max(1, Math.min(50, parseInt(document.getElementById('qt-rounds')?.value) || 8));
+    const name = (document.getElementById('qt-name')?.value || '').trim() || `Интервал ${work}/${rest}`;
+    closeTopSheet();
+    const workout = {
+        id: Date.now(),
+        name: name,
+        autoStart: true,
+        exercises: []
+    };
+    for (let i = 0; i < rounds; i++) {
+        workout.exercises.push({ kind: 'exercise', name: `Раунд ${i+1}`, type: 'timer', timerDuration: work });
+        if (i < rounds - 1 && rest > 0) {
+            workout.exercises.push({ kind: 'rest', restType: 'rest', duration: rest });
+        }
+    }
+    startTempWorkout(workout);
+}
+
 function showFinishScreen() {
     if (!runState) return;
     if (runState) runState.phase = 'finish';
@@ -6488,6 +6883,9 @@ function showFinishScreen() {
         isDeload: !!runState.isDeload
     };
     DB.history.push(record);
+    try {
+        _lastFinishedWorkoutSnapshot = JSON.parse(JSON.stringify(runState.workout));
+    } catch(e) { _lastFinishedWorkoutSnapshot = null; }
     invalidateActivityCache();
     const removed = pruneHistory(HISTORY_PRUNE_LIMIT);
     if (removed > 0) setTimeout(() => showToast(`📜 История обрезана до ${HISTORY_PRUNE_LIMIT} записей`), 800);
@@ -6533,8 +6931,9 @@ function showFinishScreen() {
         <button class="btn ghost" onclick="saveCurrentRunAsTemplate()" style="margin-top:8px;">💾 Сохранить как шаблон</button>
         <button class="btn" onclick="repeatLastWorkout(${runState.workout.id})" style="margin-top:8px;">🔁 Повторить</button>
 		<div style="height: 20px;"></div>
-		<button class="btn ghost" onclick="showScreen('screen-workouts')" style="margin-top:0; min-height:60px; font-size:1.1rem;">← К тренировкам</button>
-		<button class="btn ghost" onclick="showScreen('screen-home')" style="margin-top:8px; min-height:60px; font-size:1.1rem;">🏠 На главную</button>
+		<button class="btn ghost" onclick="goAfterRunEnd()" style="margin-top:0; min-height:60px; font-size:1.1rem;" id="finish-back-btn">← Назад</button>
+		<button class="btn accent" id="finish-repeat-btn" onclick="repeatLastWorkout(runState && runState.workout ? runState.workout.id : null)" style="margin-top:8px; min-height:56px; font-size:1.05rem;">↻ Повторить тренировку</button>
+		<button class="btn ghost" onclick="showScreen('screen-home')" style="margin-top:8px; min-height:56px; font-size:1.05rem;">🏠 На главную</button>
     `;
     document.getElementById('phase-finish').style.display = 'block';
     releaseWakeLock();
@@ -6560,10 +6959,26 @@ function saveWorkoutNote(recordId) {
         if (toggle) { toggle.style.display = 'block'; toggle.innerText = '📝 Редактировать заметку к тренировке'; }
     }
 }
+let _lastFinishedWorkoutSnapshot = null;
 function repeatLastWorkout(workoutId) {
-    const w = DB.workouts.find(x => x.id === workoutId);
-    if (!w) { showToast('⚠️ Тренировка удалена. Сохраните как шаблон из завершённой.'); return; }
-    runState = null; startWorkout(workoutId, false);
+    // Prefer live workout from DB
+    if (workoutId) {
+        const w = DB.workouts.find(x => x.id === workoutId);
+        if (w) {
+            runState = null;
+            startWorkout(workoutId, false);
+            return;
+        }
+    }
+    // Fallback to snapshot (for temp / quick-start / deleted)
+    if (_lastFinishedWorkoutSnapshot) {
+        const w = JSON.parse(JSON.stringify(_lastFinishedWorkoutSnapshot));
+        w.id = Date.now();
+        startTempWorkout(w);
+        showToast('↻ Повтор из снимка');
+        return;
+    }
+    showToast('⚠️ Нет данных для повтора');
 }
 
 function renderHistory() { renderHistoryList(); renderHistoryStats(); renderHistoryRecords(); renderHistoryPrograms(); }
@@ -6913,7 +7328,7 @@ async function resetAllSettings() {
         weeklyDigest: true, quietHours: false, quietHoursStart: 22, quietHoursEnd: 8,
         programsCalendarCollapsed: false, builtinTemplatesCollapsed: false, soundMode: 'beep',
         weekMetric: 'work', weekRange: 8,
-        homeStreakCollapsed: false, homePlanCollapsed: false
+        homeStreakCollapsed: false, homePlanCollapsed: false, quickStartCollapsed: false
     };
     if (DB.settings.soundMode !== 'voice' && DB.settings.soundMode !== 'beep') DB.settings.soundMode = 'beep';
     saveDB('settings');
@@ -7183,6 +7598,7 @@ function importData(event) {
             if (![4,8,12].includes(DB.settings.weekRange)) DB.settings.weekRange = 8;
             if (typeof DB.settings.homeStreakCollapsed !== 'boolean') DB.settings.homeStreakCollapsed = false;
             if (typeof DB.settings.homePlanCollapsed !== 'boolean') DB.settings.homePlanCollapsed = false;
+            if (typeof DB.settings.quickStartCollapsed !== 'boolean') DB.settings.quickStartCollapsed = false;
             saveDB('workouts'); saveDB('templates'); saveDB('programs'); saveDB('history'); saveDB('measurements'); saveDB('settings');
             validateAndMigrateDB();
             applyTheme(); applyFontSize(); applyCompactWorkouts(); applyHomeMenuVisibility();
@@ -7396,11 +7812,17 @@ function openRunMenu() {
     if (!runState || runState.phase === 'finish') return;
     if (hasOpenOverlay()) return;
 
-    let pausedWork = false, pausedRest = false, pausedWarmup = false;
+    let pausedWork = false, pausedRest = false, pausedWarmup = false, pausedCountdown = false;
     if (runState.phase === 'work' && !runState.workPaused) { pauseTimer('work'); pausedWork = true; }
     if (runState.phase === 'rest' && !runState.restPaused && !runState.restBannerMode) { pauseTimer('rest'); pausedRest = true; }
     if (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished) { pauseTimer('warmup'); pausedWarmup = true; }
-    runState._menuPaused = { pausedWork, pausedRest, pausedWarmup };
+    // Пауза обратного отсчёта (countdown) — важно для быстрых стартов с автозапуском
+    if (runState.phase === 'countdown' && runState.countdownInterval) {
+        try { clearInterval(runState.countdownInterval); } catch(e) {}
+        runState.countdownInterval = null;
+        pausedCountdown = true;
+    }
+    runState._menuPaused = { pausedWork, pausedRest, pausedWarmup, pausedCountdown };
     runState._menuOpen = true;
     renderRun();
 
@@ -7412,6 +7834,25 @@ function openRunMenu() {
         if (p.pausedWork && runState.phase === 'work') resumeTimer('work');
         if (p.pausedRest && runState.phase === 'rest') resumeTimer('rest');
         if (p.pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
+        // Возобновить countdown с текущего значения
+        if (p.pausedCountdown && runState.phase === 'countdown') {
+            clearInterval(runState.countdownInterval);
+            runState.countdownInterval = setInterval(() => {
+                if (!runState || runState.phase !== 'countdown') { clearInterval(runState.countdownInterval); return; }
+                if (runState._menuOpen) return; // не тикаем, пока меню снова открыто
+                runState.countdownValue--;
+                if (runState.countdownValue > 0) {
+                    if (isVoiceMode() && !runState.isMuted) { if (runState.countdownValue <= 3) speakCritical(String(runState.countdownValue)); }
+                    else if (!runState.isMuted) playBeep(600, 0.1);
+                    renderRun();
+                } else {
+                    clearInterval(runState.countdownInterval);
+                    runState.countdownInterval = null;
+                    if (isVoiceMode() && !runState.isMuted) setTimeout(() => startExerciseNow(), 500);
+                    else { if (!runState.isMuted) playBeep(900, 0.3); setTimeout(() => startExerciseNow(), 300); }
+                }
+            }, 1000);
+        }
         saveRunState();
         renderRun();
     }
@@ -7655,6 +8096,18 @@ async function finishWorkoutEarly() {
     showFinishScreen();
 }
 
+
+function getRunReturnScreen() {
+    if (runReturnScreen) return runReturnScreen;
+    if (runState && runState.isTemp) return 'screen-home';
+    return 'screen-workouts';
+}
+function goAfterRunEnd() {
+    const target = getRunReturnScreen();
+    runReturnScreen = 'screen-home';
+    showScreen(target);
+}
+
 async function cancelWorkout() {
     if (!runState || runState.phase === 'finish') return;
     const ok = await customConfirm('Отменить тренировку?\n\nДанные НЕ сохранятся в историю.', { title: 'Отменить тренировку', okText: '✕ Отменить', cancelText: 'Продолжить', danger: true });
@@ -7664,14 +8117,19 @@ async function cancelWorkout() {
     stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock();
     clearSavedRunState(); disableExitProtection();
     runState = null;
-    showScreen('screen-workouts');
+    goAfterRunEnd();
     showToast('❌ Тренировка отменена');
 }
 
 window.addEventListener('load', () => {
     setTimeout(async () => {
         try { if (!checkTabLock()) showMultiTabWarning(); startTabLockHeartbeat(); } catch(e) {}
-        try { renderStreakBanner(); renderHomeTodayBanner(); applyHomeMenuVisibility(); } catch(e) {}
+        try {
+            if (typeof forceClearRunState === 'function' && runState && runState.phase === 'finish') forceClearRunState();
+            if (typeof ensureNoStuckRunState === 'function') ensureNoStuckRunState();
+            renderStreakBanner(); renderHomeTodayBanner(); applyHomeMenuVisibility();
+            if (typeof applyQuickStartCollapsed === 'function') applyQuickStartCollapsed();
+        } catch(e) {}
         try { updateFooter(); } catch(e) {}
         try { initNotifGrabber(); updateNotifGrabber(); } catch(e) {}
         try { await initServiceWorker(); } catch(e) { console.error('[SW]', e); }
