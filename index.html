@@ -1043,6 +1043,8 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     </div>
 </div>
             <div class="sound-section"><div class="sound-section-title">Время отсрочки («Позже»)</div><div class="sound-options" id="snooze-duration-options"></div></div>
+            <button class="btn ghost" style="margin-top:10px;" onclick="showNotifHistory()">📋 История уведомлений</button>
+            <div style="color:var(--muted); font-size:0.78rem; margin-top:6px; text-align:center;">Хранятся последние 7 дней, затем удаляются автоматически</div>
         </div>
     </details>
     <details class="settings-group" open data-group="timers">
@@ -3175,7 +3177,7 @@ function openNotifCenter() {
         if (streaks.length > 0) {
             html += `<div class="notif-section-title">🔥 Стрик</div>`;
             streaks.forEach(r => {
-                html += `<div class="notif-item ${r.dismissed ? 'disabled' : ''}"><div class="notif-status">🔥</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">${r.dismissed ? '🔕 Не напоминать' : 'Вечернее напоминание'}</div></div><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
+                html += `<div class="notif-item ${r.dismissed ? 'disabled' : ''}"><div class="notif-status">🔥</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">${r.dismissed ? '🔕 Не напоминать' : 'Вечернее напоминание'}</div></div><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
             });
         }
         if (digests.length > 0) {
@@ -3185,7 +3187,7 @@ function openNotifCenter() {
                 if (r.dismissed) {
                     html += `<div class="notif-item disabled"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">🔕 Не напоминать</div></div><div style="display:flex; gap:4px;"><button class="icon-btn" onclick="notifOpenDigest('${weekKey}')" aria-label="Открыть" style="background:var(--primary); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">📊</button><button class="icon-btn" onclick="enableNotification('${r.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700;">🔔</button></div></div>`;
                 } else {
-                    html += `<div class="notif-item"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name" style="cursor:pointer;" onclick="notifOpenDigest('${weekKey}')">${escapeHtml(r.title)}</div><div class="notif-sub">Нажмите, чтобы посмотреть</div></div><div style="display:flex; gap:4px;"><button class="icon-btn" onclick="notifOpenDigest('${weekKey}')" aria-label="Открыть" style="background:var(--primary); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">📊</button><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div></div>`;
+                    html += `<div class="notif-item"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name" style="cursor:pointer;" onclick="notifOpenDigest('${weekKey}')">${escapeHtml(r.title)}</div><div class="notif-sub">Нажмите, чтобы посмотреть</div></div><button class="icon-btn" onclick="dismissDigestNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--danger); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
                 }
             });
         }
@@ -3236,13 +3238,39 @@ function openNotifCenter() {
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) { ov.remove(); updateNotifGrabber(); } });
 }
+function logNotifHistory(entry) {
+    try {
+        let hist = JSON.parse(localStorage.getItem('ft_notif_history') || '[]');
+        hist.unshift({ ...entry, ts: Date.now() });
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        hist = hist.filter(h => h.ts >= weekAgo).slice(0, 50);
+        localStorage.setItem('ft_notif_history', JSON.stringify(hist));
+    } catch(e) {}
+}
 function dismissNotification(key, btn) {
     DB.settings.dismissedUntil = DB.settings.dismissedUntil || {};
     DB.settings.dismissedUntil[key] = Date.now() + 7 * 24 * 60 * 60 * 1000;
     saveDB('settings');
+    logNotifHistory({ type: 'dismiss', key, title: key.startsWith('streak') ? 'Стрик-гард' : key.startsWith('digest') ? 'Итоги недели' : 'Уведомление' });
     const ov = btn.closest('.notif-side-overlay');
     if (ov) { ov.remove(); updateNotifGrabber(); }
     showToast('🔕 Напомним через неделю');
+}
+async function dismissDigestNotification(key, btn) {
+    const ok = await customConfirm('Итоги недели будут закрыты.\n\nВы сможете снова открыть их из истории уведомлений или при следующем появлении.', {
+        title: 'Закрыть итоги недели?',
+        okText: 'Закрыть',
+        cancelText: 'Отмена',
+        danger: false
+    });
+    if (!ok) return;
+    DB.settings.dismissedUntil = DB.settings.dismissedUntil || {};
+    DB.settings.dismissedUntil[key] = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    saveDB('settings');
+    logNotifHistory({ type: 'dismiss', key, title: 'Итоги недели' });
+    const ov = btn.closest('.notif-side-overlay');
+    if (ov) { ov.remove(); updateNotifGrabber(); }
+    showToast('🔕 Итоги недели закрыты');
 }
 function enableNotification(key, btn) {
     if (!DB.settings.dismissedUntil) DB.settings.dismissedUntil = {};
@@ -3314,6 +3342,30 @@ function openNotifSettings(btn) {
         const notifyGroup = document.querySelector('#screen-settings details[data-group="notify"]');
         if (notifyGroup) { notifyGroup.open = true; notifyGroup.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }, 100);
+}
+function showNotifHistory() {
+    let hist = [];
+    try { hist = JSON.parse(localStorage.getItem('ft_notif_history') || '[]'); } catch(e) {}
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    hist = hist.filter(h => h.ts >= weekAgo);
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay';
+    let listHtml = '';
+    if (hist.length === 0) {
+        listHtml = '<div style="text-align:center; color:var(--muted); padding:32px 16px;">История пуста</div>';
+    } else {
+        listHtml = hist.map(h => {
+            const d = new Date(h.ts);
+            const dateStr = d.toLocaleString('ru-RU', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+            const icon = h.key && h.key.startsWith('streak') ? '🔥' : (h.key && h.key.startsWith('digest') ? '📊' : '🔔');
+            const action = h.type === 'dismiss' ? 'Закрыто' : (h.type === 'show' ? 'Показано' : 'Событие');
+            return `<div class="notif-item" style="margin-bottom:6px;"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(h.title || 'Уведомление')}</div><div class="notif-sub">${action} · ${dateStr}</div></div></div>`;
+        }).join('');
+    }
+    ov.innerHTML = `<div class="notif-side-sheet" style="max-height:80vh;"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">📋 История уведомлений</h2><div style="color:var(--muted); font-size:0.8rem; text-align:center; margin-bottom:8px;">Последние 7 дней</div><div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">${listHtml}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
 }
 
 async function offerResumeSavedSession() {
@@ -7201,7 +7253,44 @@ function checkScheduledNotifications() {
     if (visible.length === 0) return;
     DB.settings.lastNotifAutoShow = todayKey;
     saveDB('settings');
+    // Log appearance
+    visible.forEach(n => logNotifHistory({ type: 'show', key: n.key, title: n.title }));
+    // Prefer specific dialog for streak
+    const streak = visible.find(n => n.type === 'streak');
+    if (streak) {
+        offerStreakGuard(streak);
+        return;
+    }
     openNotifCenter();
+}
+async function offerStreakGuard(notif) {
+    if (hasOpenOverlay()) return;
+    const streakMatch = (notif.title || '').match(/(\d+)/);
+    const days = streakMatch ? streakMatch[1] : '';
+    const msg = days
+        ? `У вас серия из ${days} ${pluralDays(parseInt(days))} подряд!\n\nСегодня ещё не было тренировки.\nЕсли не потренируетесь — стрик сгорит.\n\nЧто делаем?`
+        : `Сегодня ещё не было активности.\nСерия под угрозой.\n\nЧто делаем?`;
+    const ok = await customConfirm(msg, {
+        title: '🔥 Стрик-гард',
+        okText: 'Понятно',
+        cancelText: 'Закрыть напоминание',
+        danger: false
+    });
+    if (ok === false) {
+        // dismiss
+        DB.settings.dismissedUntil = DB.settings.dismissedUntil || {};
+        DB.settings.dismissedUntil[notif.key] = Date.now() + 7 * 24 * 60 * 60 * 1000;
+        saveDB('settings');
+        logNotifHistory({ type: 'dismiss', key: notif.key, title: notif.title });
+        updateNotifGrabber();
+        showToast('🔕 Напоминание о стрике закрыто');
+    } else {
+        // just acknowledge, keep in notifs
+        updateNotifGrabber();
+        // optionally open center if other notifs
+        const others = getVisibleNotifications().filter(n => n.key !== notif.key);
+        if (others.length > 0) openNotifCenter();
+    }
 }
 document.addEventListener('touchstart', (e) => {
     const sheet = e.target.closest('.notif-side-sheet');
