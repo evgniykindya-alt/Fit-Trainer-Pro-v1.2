@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.3.1">
+<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.3.3">
 <meta name="theme-color" content="#0a0a10">
-<title>Fit Trainer Pro v1.3.1</title>
+<title>Fit Trainer Pro v1.3.3</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%230a0a10'/%3E%3Ctext x='50' y='75' font-size='75' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 
 <link rel="manifest" href='data:application/manifest+json,{"name":"Fit Trainer","short_name":"FitTrainer","start_url":".","display":"standalone","background_color":"%230a0a10","theme_color":"%230a0a10","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2750%27 fill=%27%230a0a10%27/%3E%3Ctext x=%2796%27 y=%27140%27 font-size=%27140%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27120%27 fill=%27%230a0a10%27/%3E%3Ctext x=%27256%27 y=%27380%27 font-size=%27380%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
@@ -666,7 +666,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 <div class="app-container">
 
 <div id="screen-home" class="screen active">
-    <h1>💪 Fit Trainer Pro v1.3.1</h1>
+    <h1>💪 Fit Trainer Pro v1.3.3</h1>
     <div id="streak-banner-home"></div>
     <div id="home-today-banner" style="display:none;"></div>
     <div id="quick-start-section" class="card" style="margin-bottom:16px; padding:14px; border:1px solid var(--border-soft); box-shadow:var(--shadow-sm);">
@@ -1130,7 +1130,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <summary>ℹ️ О приложении</summary>
         <div class="group-body">
             <div class="card" style="color:var(--muted); font-size:0.85rem; line-height:1.6;">
-                <strong style="color:var(--text);">Fit Trainer Pro v1.3.1</strong><br>
+                <strong style="color:var(--text);">Fit Trainer Pro v1.3.3</strong><br>
                 Данные хранятся локально.<br>
                 <span id="error-log-info" style="display:block; margin-top:8px;"></span>
             </div>
@@ -1175,7 +1175,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 window.addEventListener('error', (e) => { 
     console.error('[FT error]', e.error || e.message);
     try {
-        const log = JSON.parse(localStorage.getItem('ft_error_log') || '[]');
+        const log = readStoredArray('ft_error_log');
         log.push({ ts: Date.now(), msg: String(e.message || e.error || 'Unknown'), src: String(e.filename || ''), line: e.lineno });
         while (log.length > 50) log.shift();
         localStorage.setItem('ft_error_log', JSON.stringify(log));
@@ -1184,14 +1184,14 @@ window.addEventListener('error', (e) => {
 window.addEventListener('unhandledrejection', (e) => { 
     console.error('[FT unhandled]', e.reason);
     try {
-        const log = JSON.parse(localStorage.getItem('ft_error_log') || '[]');
+        const log = readStoredArray('ft_error_log');
         log.push({ ts: Date.now(), msg: 'Promise rejection: ' + String(e.reason || 'Unknown') });
         while (log.length > 50) log.shift();
         localStorage.setItem('ft_error_log', JSON.stringify(log));
     } catch(err) {}
 });
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.3.3';
 const TAB_ID = 'tab_' + Math.random().toString(36).slice(2) + '_' + Date.now();
 const TAB_LOCK_KEY = 'ft_tab_lock';
 let tabLockInterval = null;
@@ -1457,6 +1457,22 @@ const Storage = {
         catch (e) { console.warn('[Storage.set]', key, e); return false; }
     }
 };
+
+// Безопасное чтение списков из localStorage: повреждённая запись не должна
+// ломать интерфейс журналов и диагностики.
+function readStoredArray(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [];
+        const value = JSON.parse(raw);
+        return Array.isArray(value)
+            ? value.filter(item => item && typeof item === 'object' && !Array.isArray(item))
+            : [];
+    } catch (e) {
+        console.warn('[Storage.array]', key, e);
+        return [];
+    }
+}
 
 (async function() {
     try {
@@ -3308,7 +3324,7 @@ function openNotifCenter() {
 }
 function logNotifHistory(entry) {
     try {
-        let hist = JSON.parse(localStorage.getItem('ft_notif_history') || '[]');
+        let hist = readStoredArray('ft_notif_history');
         hist.unshift({ ...entry, ts: Date.now() });
         const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
         hist = hist.filter(h => h.ts >= weekAgo).slice(0, 50);
@@ -3431,10 +3447,10 @@ function openNotifSettings(btn) {
     }, 100);
 }
 function showNotifHistory() {
-    let hist = [];
-    try { hist = JSON.parse(localStorage.getItem('ft_notif_history') || '[]'); } catch(e) {}
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    hist = hist.filter(h => h.ts >= weekAgo);
+    const hist = readStoredArray('ft_notif_history').filter(h =>
+        h && typeof h === 'object' && Number.isFinite(Number(h.ts)) && Number(h.ts) >= weekAgo
+    );
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     let listHtml = '';
@@ -3458,8 +3474,10 @@ async function clearNotifHistory() {
     const ok = await customConfirm('Удалить всю историю уведомлений?', { title: 'Очистить историю', okText: '🗑 Очистить', cancelText: 'Отмена', danger: true });
     if (!ok) return;
     try { localStorage.removeItem('ft_notif_history'); } catch(e) {}
-    const ov = document.querySelector('.notif-side-overlay');
+    const overlays = document.querySelectorAll('.notif-side-overlay');
+    const ov = overlays.length ? overlays[overlays.length - 1] : null;
     if (ov) ov.remove();
+    updateNotifGrabber();
     showToast('🗑 История уведомлений очищена');
     showNotifHistory();
 }
@@ -3749,6 +3767,8 @@ function closeSettings() {
 }
 
 function showScreen(id) {
+    const targetScreen = document.getElementById(id);
+    if (!targetScreen) { console.warn('[showScreen] not found:', id); return; }
     const prevActive = document.querySelector('.screen.active');
     const prevId = prevActive ? prevActive.id : null;
     if (prevId === 'screen-workouts' && id !== 'screen-workouts') { resetWorkoutFilters(); exitWorkoutsBulkMode(); }
@@ -3757,8 +3777,6 @@ function showScreen(id) {
     if (prevId === 'screen-programs' && id !== 'screen-programs') exitProgramsBulkMode();
     if (prevId === 'screen-measurements' && id !== 'screen-measurements') exitMeasurementsBulkMode();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const targetScreen = document.getElementById(id);
-    if (!targetScreen) { console.warn('[showScreen] not found:', id); return; }
     targetScreen.classList.add('active');
     document.querySelector('.app-container').scrollTop = 0;
     applyNavVisibility();
@@ -7412,7 +7430,7 @@ async function resetAllSettings() {
     showToast('↺ Настройки сброшены');
 }
 function showErrorLog() {
-    const log = JSON.parse(localStorage.getItem('ft_error_log') || '[]');
+    const log = readStoredArray('ft_error_log');
     if (log.length === 0) { showToast('Ошибок нет'); return; }
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
@@ -7426,7 +7444,7 @@ function updateErrorLogInfo() {
     const el = document.getElementById('error-log-info');
     if (!el) return;
     try {
-        const log = JSON.parse(localStorage.getItem('ft_error_log') || '[]');
+        const log = readStoredArray('ft_error_log');
         if (log.length === 0) { el.innerHTML = '✅ Ошибок нет'; }
         else { el.innerHTML = `⚠️ <a href="#" onclick="showErrorLog(); return false;" style="color:var(--danger); text-decoration:underline;">Ошибок в логе: ${log.length}</a>`; }
     } catch(e) { el.textContent = ''; }
