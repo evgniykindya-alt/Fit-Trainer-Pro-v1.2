@@ -7022,10 +7022,10 @@ function showFinishScreen() {
         <div style="height: 20px;"></div>
 		<button class="btn accent" onclick="shareResult(${record.id})" style="margin-top:16px;">📤 Поделиться</button>
         <button class="btn ghost" onclick="saveCurrentRunAsTemplate()" style="margin-top:8px;">💾 Сохранить как шаблон</button>
-        <button class="btn" onclick="repeatLastWorkout(${runState.workout.id})" style="margin-top:8px;">🔁 Повторить</button>
+        <button class="btn" onclick="repeatLastWorkout(${runState.workout.id})" style="margin-top:8px;">🔁 Повторить тренировку</button>
 		<div style="height: 20px;"></div>
 		<button class="btn ghost" onclick="goAfterRunEnd()" style="margin-top:0; min-height:60px; font-size:1.1rem;" id="finish-back-btn">← Назад</button>
-		<button class="btn accent" id="finish-repeat-btn" onclick="repeatLastWorkout(runState && runState.workout ? runState.workout.id : null)" style="margin-top:8px; min-height:56px; font-size:1.05rem;">↻ Повторить тренировку</button>
+	<!-- 	<button class="btn accent" id="finish-repeat-btn" onclick="repeatLastWorkout(runState && runState.workout ? runState.workout.id : null)" style="margin-top:8px; min-height:56px; font-size:1.05rem;">↻ Повторить тренировку</button> -->
 		<button class="btn ghost" onclick="showScreen('screen-home')" style="margin-top:8px; min-height:56px; font-size:1.05rem;">🏠 На главную</button>
     `;
     document.getElementById('phase-finish').style.display = 'block';
@@ -8097,6 +8097,7 @@ function openRunQueueEditor() {
                 </div>
             </div>`;
         }).join('');
+		
     }
 
     function refresh() {
