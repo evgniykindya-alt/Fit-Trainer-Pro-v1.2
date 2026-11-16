@@ -3449,10 +3449,19 @@ function showNotifHistory() {
             return `<div class="notif-item" style="margin-bottom:6px;"><div class="notif-status">${icon}</div><div class="notif-body"><div class="notif-name">${escapeHtml(h.title || 'Уведомление')}</div><div class="notif-sub">${action} · ${dateStr}</div></div></div>`;
         }).join('');
     }
-    ov.innerHTML = `<div class="notif-side-sheet" style="max-height:80vh;"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">📋 История уведомлений</h2><div style="color:var(--muted); font-size:0.8rem; text-align:center; margin-bottom:8px;">Последние 7 дней</div><div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">${listHtml}</div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet" style="max-height:80vh;"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">📋 История уведомлений</h2><div style="color:var(--muted); font-size:0.8rem; text-align:center; margin-bottom:8px;">Последние 7 дней</div><div class="sheet-scroll-area" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">${listHtml}</div><button class="btn danger" onclick="clearNotifHistory()">🗑 Очистить историю</button><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button></div>`;
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+async function clearNotifHistory() {
+    const ok = await customConfirm('Удалить всю историю уведомлений?', { title: 'Очистить историю', okText: '🗑 Очистить', cancelText: 'Отмена', danger: true });
+    if (!ok) return;
+    try { localStorage.removeItem('ft_notif_history'); } catch(e) {}
+    const ov = document.querySelector('.notif-side-overlay');
+    if (ov) ov.remove();
+    showToast('🗑 История уведомлений очищена');
+    showNotifHistory();
 }
 
 async function offerResumeSavedSession() {
@@ -3683,6 +3692,51 @@ function resetHistoryFilters() {
 const NO_NAV_SCREENS = ['screen-run', 'screen-editor', 'screen-program-editor', 'screen-preview'];
 
 let settingsReturnScreen = 'screen-home';
+function pauseRunForSettings() {
+    if (!runState || runState.phase === 'finish' || runState._settingsPaused) return;
+    const p = { pausedWork: false, pausedRest: false, pausedWarmup: false, pausedCountdown: false };
+    if (runState.phase === 'work' && !runState.workPaused) { pauseTimer('work'); p.pausedWork = true; }
+    if (runState.phase === 'rest' && !runState.restPaused) { pauseTimer('rest'); p.pausedRest = true; if (runState.restFinished) stopRestAlarm(); }
+    if (runState.phase === 'warmup' && !runState.warmupPaused && !runState.warmupFinished) { pauseTimer('warmup'); p.pausedWarmup = true; }
+    if (runState.phase === 'countdown' && runState.countdownInterval) {
+        clearInterval(runState.countdownInterval);
+        runState.countdownInterval = null;
+        p.pausedCountdown = true;
+    }
+    runState._settingsPaused = p;
+    runState._menuOpen = true;
+    saveRunState();
+    renderRun();
+}
+function resumeRunAfterSettings() {
+    if (!runState || !runState._settingsPaused) return;
+    const p = runState._settingsPaused;
+    runState._settingsPaused = null;
+    runState._menuOpen = false;
+    if (p.pausedWork && runState.phase === 'work') resumeTimer('work');
+    if (p.pausedRest && runState.phase === 'rest') { resumeTimer('rest'); if (runState.restFinished) startRestAlarm(); }
+    if (p.pausedWarmup && runState.phase === 'warmup') resumeTimer('warmup');
+    if (p.pausedCountdown && runState.phase === 'countdown') {
+        clearInterval(runState.countdownInterval);
+        runState.countdownInterval = setInterval(() => {
+            if (!runState || runState.phase !== 'countdown') { clearInterval(runState.countdownInterval); return; }
+            if (runState._menuOpen) return;
+            runState.countdownValue--;
+            if (runState.countdownValue > 0) {
+                if (isVoiceMode() && !runState.isMuted) { if (runState.countdownValue <= 3) speakCritical(String(runState.countdownValue)); }
+                else if (!runState.isMuted) playBeep(600, 0.1);
+                renderRun();
+            } else {
+                clearInterval(runState.countdownInterval);
+                runState.countdownInterval = null;
+                if (isVoiceMode() && !runState.isMuted) setTimeout(() => startExerciseNow(), 500);
+                else { if (!runState.isMuted) playBeep(900, 0.3); setTimeout(() => startExerciseNow(), 300); }
+            }
+        }, 1000);
+    }
+    saveRunState();
+    renderRun();
+}
 function closeSettings() {
     const target = settingsReturnScreen || 'screen-home';
     settingsReturnScreen = 'screen-home';
@@ -3691,6 +3745,7 @@ function closeSettings() {
         return;
     }
     showScreen(target);
+    if (target === 'screen-run') resumeRunAfterSettings();
 }
 
 function showScreen(id) {
@@ -6690,7 +6745,11 @@ async function quickStartPreset(type) {
         openQuickTimerSheet();
         return;
     }
-    if (workout) startTempWorkout(workout);
+    if (workout) {
+        // Быстрые интервалы должны переходить дальше без режима «время вышло».
+        workout.settings = { ...(workout.settings || {}), continuousBeep: false };
+        startTempWorkout(workout);
+    }
 }
 
 function startTempWorkout(workout) {
@@ -7879,7 +7938,7 @@ function openRunMenu() {
         <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
         <h2 class="sheet-title">Управление тренировкой</h2>
         <button class="btn ghost" onclick="closeTopSheet(); openRunQueueEditor();">Изменить порядок</button>
-        <button class="btn ghost" onclick="closeTopSheet(); settingsReturnScreen='screen-run'; showScreen('screen-settings');">Общие настройки</button>
+        <button class="btn ghost" onclick="closeTopSheet(); pauseRunForSettings(); settingsReturnScreen='screen-run'; showScreen('screen-settings');">Общие настройки</button>
         <button class="btn accent" onclick="closeTopSheet(); finishWorkoutEarly();">Завершить сейчас</button>
         <button class="btn danger" onclick="closeTopSheet(); cancelWorkout();">✕ Отменить тренировку</button>
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
