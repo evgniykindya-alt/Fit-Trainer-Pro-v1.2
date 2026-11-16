@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.2">
+<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.2.1">
 <meta name="theme-color" content="#0a0a10">
-<title>Fit Trainer Pro v1.2</title>
+<title>Fit Trainer Pro v1.2.1</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%230a0a10'/%3E%3Ctext x='50' y='75' font-size='75' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 
 <link rel="manifest" href='data:application/manifest+json,{"name":"Fit Trainer","short_name":"FitTrainer","start_url":".","display":"standalone","background_color":"%230a0a10","theme_color":"%230a0a10","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2750%27 fill=%27%230a0a10%27/%3E%3Ctext x=%2796%27 y=%27140%27 font-size=%27140%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27120%27 fill=%27%230a0a10%27/%3E%3Ctext x=%27256%27 y=%27380%27 font-size=%27380%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
@@ -666,7 +666,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
 <div class="app-container">
 
 <div id="screen-home" class="screen active">
-    <h1>💪 Fit Trainer Pro v1.2</h1>
+    <h1>💪 Fit Trainer Pro v1.2.1</h1>
     <div id="streak-banner-home"></div>
     <div id="home-today-banner" style="display:none;"></div>
     <div class="menu-grid">
@@ -813,6 +813,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
                 <div class="checkbox-row"><input type="checkbox" id="workout-continuous-beep"><label for="workout-continuous-beep">🔁 Непрерывно повторять звук окончания отдыха</label></div>
                 <div class="checkbox-row"><input type="checkbox" id="workout-ask-reps"><label for="workout-ask-reps">🔢 Спрашивать количество повторов после подхода</label></div>
                 <div class="checkbox-row"><input type="checkbox" id="workout-skip-warmup"><label for="workout-skip-warmup">⏭ Пропускать разминку при автозапуске</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="workout-show-start-time"><label for="workout-show-start-time">🕐 Показывать время старта</label></div>
             </div>
             <button class="btn ghost small" onclick="resetWorkoutSettingsToGlobal()" style="width:100%;">↺ Сбросить к глобальным настройкам</button>
         </div>
@@ -1101,7 +1102,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <summary>ℹ️ О приложении</summary>
         <div class="group-body">
             <div class="card" style="color:var(--muted); font-size:0.85rem; line-height:1.6;">
-                <strong style="color:var(--text);">Fit Trainer Pro v1.2</strong><br>
+                <strong style="color:var(--text);">Fit Trainer Pro v1.2.1</strong><br>
                 Данные хранятся локально.<br>
                 <span id="error-log-info" style="display:block; margin-top:8px;"></span>
             </div>
@@ -1162,7 +1163,7 @@ window.addEventListener('unhandledrejection', (e) => {
     } catch(err) {}
 });
 
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.2.1';
 const TAB_ID = 'tab_' + Math.random().toString(36).slice(2) + '_' + Date.now();
 const TAB_LOCK_KEY = 'ft_tab_lock';
 let tabLockInterval = null;
@@ -1870,19 +1871,19 @@ function askBackupPassword(opts = {}) {
     });
 }
 
-const HISTORY_PRUNE_LIMIT = 500;
-const HISTORY_HARD_LIMIT = 500;
+const HISTORY_PRUNE_LIMIT = 2000;
+const HISTORY_HARD_LIMIT = 2000;
 function pruneHistory(maxRecords = HISTORY_PRUNE_LIMIT) {
     if (!Array.isArray(DB.history)) return 0;
-    if (DB.history.length <= maxRecords) return 0;
-    const valid = DB.history.filter(r => r && r.startTime);
-    const invalidCount = DB.history.length - valid.length;
-    if (invalidCount > 0) { DB.history = valid; }
-    if (DB.history.length <= maxRecords) return invalidCount;
+    const before = DB.history.length;
+    // Удаляем битые записи
+    const valid = DB.history.filter(r => r && r.startTime && r.id);
+    if (valid.length !== DB.history.length) DB.history = valid;
+    if (DB.history.length <= maxRecords) return before - DB.history.length;
+    // Оставляем самые новые
     const sorted = [...DB.history].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    const removed = DB.history.length - maxRecords + invalidCount;
     DB.history = sorted.slice(0, maxRecords);
-    return removed;
+    return before - DB.history.length;
 }
 function saveDBWithQuotaRecovery(key) {
     const map = { workouts: 'ft_workouts', templates: 'ft_templates', programs: 'ft_programs', history: 'ft_history', measurements: 'ft_measurements', settings: 'ft_settings' };
@@ -1890,17 +1891,22 @@ function saveDBWithQuotaRecovery(key) {
     if (!storageKey) return;
     const ok = Storage.set(storageKey, DB[key]);
     if (ok) { if (key === 'history') invalidateActivityCache(); return; }
-    const removed = pruneHistory(200);
-    if (removed > 0) {
-        Storage.set('ft_history', DB.history);
-        const ok2 = Storage.set(storageKey, DB[key]);
-        if (ok2) { if (key === 'history') invalidateActivityCache(); showToast(`💾 Мало места. Удалено ${removed} старых записей.`, 4000); return; }
-    }
-    const removed2 = pruneHistory(50);
-    if (removed2 > 0) {
-        Storage.set('ft_history', DB.history);
-        const ok3 = Storage.set(storageKey, DB[key]);
-        if (ok3) { if (key === 'history') invalidateActivityCache(); showToast(`💾 Мало места. Удалено ${removed + removed2} старых записей.`, 4000); return; }
+
+    // Поэтапная аварийная обрезка при нехватке места (мягче → жёстче)
+    const steps = [1000, 500, 200, 50];
+    let totalRemoved = 0;
+    for (const limit of steps) {
+        const removed = pruneHistory(limit);
+        if (removed > 0) {
+            totalRemoved += removed;
+            Storage.set('ft_history', DB.history);
+            const ok2 = Storage.set(storageKey, DB[key]);
+            if (ok2) {
+                if (key === 'history') invalidateActivityCache();
+                showToast(`💾 Мало места. Удалено ${totalRemoved} старых записей истории.`, 4500);
+                return;
+            }
+        }
     }
     showToast('⚠️ Не удалось сохранить. Освободите место в браузере.', 5000);
 }
@@ -3015,15 +3021,14 @@ function saveRunState() {
     if (!runStateSaveQuotaRetryDone) {
         runStateSaveQuotaRetryDone = true;
         try {
-            const removed = pruneHistory(200);
-            if (removed > 0) {
-                Storage.set('ft_history', DB.history);
-                try { localStorage.setItem(RUN_STATE_KEY, serialized); return; } catch(e2) {}
-            }
-            const removed2 = pruneHistory(50);
-            if (removed2 > 0) {
-                Storage.set('ft_history', DB.history);
-                try { localStorage.setItem(RUN_STATE_KEY, serialized); return; } catch(e3) {}
+            // Аварийная обрезка истории, чтобы сохранить состояние текущей тренировки
+            const steps = [1000, 500, 200, 50];
+            for (const limit of steps) {
+                const removed = pruneHistory(limit);
+                if (removed > 0) {
+                    Storage.set('ft_history', DB.history);
+                    try { localStorage.setItem(RUN_STATE_KEY, serialized); return; } catch(e2) {}
+                }
             }
         } catch(recoveryErr) {}
     }
@@ -3062,14 +3067,21 @@ function getActiveNotifications() {
     }
     if (DB.settings.weeklyDigest && !isQuietHours()) {
         const nowD = new Date();
-        if (nowD.getDay() === 0 && nowD.getHours() >= 20) {
-            const weekStart = startOfWeekMonday(nowD);
+        // Воскресенье с 20:00 и весь понедельник (если пропустили)
+        const day = nowD.getDay();
+        const hour = nowD.getHours();
+        const showDigest = (day === 0 && hour >= 20) || (day === 1);
+        if (showDigest) {
+            const weekStart = startOfWeekMonday(day === 1 ? addDays(nowD, -1) : nowD);
             const weekStartKey = formatDateKey(weekStart);
             const key = `digest-${weekStartKey}`;
-            const weekRecords = DB.history.filter(r => new Date(r.startTime) >= weekStart);
+            const weekEnd = addDays(weekStart, 7);
+            const weekRecords = DB.history.filter(r => {
+                try { const d = new Date(r.startTime); return d >= weekStart && d < weekEnd; } catch(e) { return false; }
+            });
             if (weekRecords.length > 0) {
                 const isDismissed = !!(dismissed[key] && dismissed[key] > now);
-                list.push({ type: 'digest', key, title: `Итоги недели: ${weekRecords.length} ${pluralWorkouts(weekRecords.length)}`, dismissed: isDismissed, icon: '📊' });
+                list.push({ type: 'digest', key, weekStartKey, title: `Итоги недели: ${weekRecords.length} ${pluralWorkouts(weekRecords.length)}`, dismissed: isDismissed, icon: '📊' });
             }
         }
     }
@@ -3169,7 +3181,12 @@ function openNotifCenter() {
         if (digests.length > 0) {
             html += `<div class="notif-section-title">📊 Итоги</div>`;
             digests.forEach(r => {
-                html += `<div class="notif-item ${r.dismissed ? 'disabled' : ''}"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">${r.dismissed ? '🔕 Не напоминать' : 'Воскресенье'}</div></div><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div>`;
+                const weekKey = r.weekStartKey || (r.key && r.key.indexOf('digest-') === 0 ? r.key.slice(7) : '');
+                if (r.dismissed) {
+                    html += `<div class="notif-item disabled"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name">${escapeHtml(r.title)}</div><div class="notif-sub">🔕 Не напоминать</div></div><div style="display:flex; gap:4px;"><button class="icon-btn" onclick="notifOpenDigest('${weekKey}')" aria-label="Открыть" style="background:var(--primary); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">📊</button><button class="icon-btn" onclick="enableNotification('${r.key}', this)" aria-label="Включить" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700;">🔔</button></div></div>`;
+                } else {
+                    html += `<div class="notif-item"><div class="notif-status">📊</div><div class="notif-body"><div class="notif-name" style="cursor:pointer;" onclick="notifOpenDigest('${weekKey}')">${escapeHtml(r.title)}</div><div class="notif-sub">Нажмите, чтобы посмотреть</div></div><div style="display:flex; gap:4px;"><button class="icon-btn" onclick="notifOpenDigest('${weekKey}')" aria-label="Открыть" style="background:var(--primary); color:#0a0a10; width:38px; height:38px; border-radius:10px; font-weight:700;">📊</button><button class="icon-btn" onclick="dismissNotification('${r.key}', this)" aria-label="Скрыть" style="background:var(--card-3); color:var(--text); width:38px; height:38px; border-radius:10px; font-weight:700; font-size:1rem;">✕</button></div></div>`;
+                }
             });
         }
         if (resumes.length > 0) {
@@ -3235,6 +3252,13 @@ function enableNotification(key, btn) {
     if (ov) { ov.remove(); updateNotifGrabber(); }
     showToast('🔔 Напоминание включено');
     openNotifCenter();
+}
+function notifOpenDigest(weekStartKey) {
+    if (!weekStartKey) { showToast('Нет данных за неделю'); return; }
+    // Закрываем центр уведомлений, затем открываем итоги
+    document.querySelectorAll('.notif-side-overlay').forEach(ov => { try { ov.remove(); } catch(e) {} });
+    updateNotifGrabber();
+    try { showWeekActivityDetail(weekStartKey); } catch(e) { console.error(e); showToast('Не удалось открыть итоги'); }
 }
 function enableAllNotifications(btn) {
     DB.settings.dismissedUntil = {};
@@ -4143,7 +4167,7 @@ function renderMeasurements() {
                     if (measurementsSelectionMode) {
                         return `<div class="measure-item" onclick="toggleMeasurementSelection(${m.id})" style="cursor:pointer;"><div class="bulk-checkbox ${isChecked ? 'checked' : ''}" style="margin-right:8px;"></div><div class="measure-item-info">${prefix}${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div></div>`;
                     }
-                    return `<div class="measure-item"><div class="measure-item-info">${prefix}${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div><button class="icon-btn" onclick="deleteMeasurement(${m.id})" aria-label="Удалить">🗑</button></div>`;
+                    return `<div class="measure-item"><div class="measure-item-info" style="cursor:pointer;" onclick="openMeasurementForm(${m.id})">${prefix}${typeof m.weight === 'number' ? `<div class="measure-item-main">${m.weight.toFixed(1)} кг</div>` : ''}${extras.length ? `<div class="measure-item-extra">${extras.join(' · ')}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>` : (m.notes ? `<div class="measure-item-extra">${escapeHtml(m.notes)}</div>` : '')}</div><div style="display:flex; gap:4px; flex-shrink:0;"><button class="icon-btn" onclick="event.stopPropagation(); openMeasurementForm(${m.id})" aria-label="Изменить" style="color:var(--blue);">✏️</button><button class="icon-btn" onclick="event.stopPropagation(); deleteMeasurement(${m.id})" aria-label="Удалить">🗑</button></div></div>`;
                 }).join('');
                 return `<div style="margin-bottom:12px;"><div style="font-size:0.8rem; color:var(--muted); font-weight:700; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">📅 ${dayLabel}${g.records.length > 1 ? ' · ' + g.records.length + ' замера' : ''}</div>${rows}</div>`;
             }).join('');
@@ -4164,18 +4188,26 @@ function renderMeasurements() {
     }
 }
 
-function openMeasurementForm() {
+let editingMeasurementId = null;
+function openMeasurementForm(editId) {
+    editingMeasurementId = (editId !== undefined && editId !== null) ? editId : null;
+    const existing = editingMeasurementId ? DB.measurements.find(m => m.id === editingMeasurementId) : null;
     const today = new Date();
-    const dateStr = formatDateKey(today);
+    const dateStr = existing ? (existing.date || formatDateKey(today)) : formatDateKey(today);
+    const wVal = existing && typeof existing.weight === 'number' ? existing.weight : '';
+    const cVal = existing && typeof existing.chest === 'number' ? existing.chest : '';
+    const waVal = existing && typeof existing.waist === 'number' ? existing.waist : '';
+    const hVal = existing && typeof existing.hips === 'number' ? existing.hips : '';
+    const nVal = existing && existing.notes ? escapeHtml(existing.notes) : '';
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     ov.id = 'measurement-form-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Новый замер</h2><div style="flex: 1; overflow-y: auto;"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Дата</label><input type="date" id="m-date" class="input" value="${dateStr}"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Вес (кг)</label><input type="number" id="m-weight" class="input" step="0.1" min="0" max="500" placeholder="Например: 72.5"><div class="form-row"><div class="form-col"><label>Грудь (см)</label><input type="number" id="m-chest" class="input" step="0.5" min="0" max="300" placeholder="—"></div><div class="form-col"><label>Талия (см)</label><input type="number" id="m-waist" class="input" step="0.5" min="0" max="300" placeholder="—"></div></div><div class="form-row"><div class="form-col"><label>Бёдра (см)</label><input type="number" id="m-hips" class="input" step="0.5" min="0" max="300" placeholder="—"></div></div><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Заметка</label><textarea id="m-notes" class="input" placeholder="Как самочувствие?" style="min-height:60px;"></textarea></div><button class="btn accent" onclick="saveMeasurement()">💾 Сохранить</button><button class="btn ghost" onclick="closeMeasurementForm()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${existing ? 'Редактировать замер' : 'Новый замер'}</h2><div style="flex: 1; overflow-y: auto;"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Дата</label><input type="date" id="m-date" class="input" value="${dateStr}"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Вес (кг)</label><input type="number" id="m-weight" class="input" step="0.1" min="0" max="500" placeholder="Например: 72.5" value="${wVal}"><div class="form-row"><div class="form-col"><label>Грудь (см)</label><input type="number" id="m-chest" class="input" step="0.5" min="0" max="300" placeholder="—" value="${cVal}"></div><div class="form-col"><label>Талия (см)</label><input type="number" id="m-waist" class="input" step="0.5" min="0" max="300" placeholder="—" value="${waVal}"></div></div><div class="form-row"><div class="form-col"><label>Бёдра (см)</label><input type="number" id="m-hips" class="input" step="0.5" min="0" max="300" placeholder="—" value="${hVal}"></div></div><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Заметка</label><textarea id="m-notes" class="input" placeholder="Как самочувствие?" style="min-height:60px;">${nVal}</textarea></div><button class="btn accent" onclick="saveMeasurement()">💾 Сохранить</button><button class="btn ghost" onclick="closeMeasurementForm()">Отмена</button></div>`;
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) closeMeasurementForm(); });
 }
-function closeMeasurementForm() { const ov = document.getElementById('measurement-form-overlay'); if (ov) ov.remove(); }
+function closeMeasurementForm() { editingMeasurementId = null; const ov = document.getElementById('measurement-form-overlay'); if (ov) ov.remove(); }
 function saveMeasurement() {
     const dateVal = document.getElementById('m-date').value;
     const weightVal = parseFloat(document.getElementById('m-weight').value);
@@ -4185,17 +4217,36 @@ function saveMeasurement() {
     const notesVal = document.getElementById('m-notes').value.trim();
     if (!dateVal) { showToast('Укажите дату'); return; }
     if (isNaN(weightVal) && isNaN(chestVal) && isNaN(waistVal) && isNaN(hipsVal) && !notesVal) { showToast('Укажите хотя бы одно значение'); return; }
-    const rec = { id: Date.now(), date: dateVal };
-    if (!isNaN(weightVal) && weightVal > 0) rec.weight = weightVal;
-    if (!isNaN(chestVal) && chestVal > 0) rec.chest = chestVal;
-    if (!isNaN(waistVal) && waistVal > 0) rec.waist = waistVal;
-    if (!isNaN(hipsVal) && hipsVal > 0) rec.hips = hipsVal;
-    if (notesVal) rec.notes = notesVal;
-    DB.measurements.push(rec);
-    saveDB('measurements');
-    closeMeasurementForm();
-    renderMeasurements();
-    showToast('✅ Замер сохранён');
+    const fields = { date: dateVal };
+    if (!isNaN(weightVal) && weightVal > 0) fields.weight = weightVal; else fields.weight = undefined;
+    if (!isNaN(chestVal) && chestVal > 0) fields.chest = chestVal; else fields.chest = undefined;
+    if (!isNaN(waistVal) && waistVal > 0) fields.waist = waistVal; else fields.waist = undefined;
+    if (!isNaN(hipsVal) && hipsVal > 0) fields.hips = hipsVal; else fields.hips = undefined;
+    if (notesVal) fields.notes = notesVal; else fields.notes = undefined;
+    if (editingMeasurementId) {
+        const rec = DB.measurements.find(m => m.id === editingMeasurementId);
+        if (!rec) { showToast('Запись не найдена'); closeMeasurementForm(); return; }
+        Object.keys(fields).forEach(k => {
+            if (fields[k] === undefined) delete rec[k];
+            else rec[k] = fields[k];
+        });
+        saveDB('measurements');
+        closeMeasurementForm();
+        renderMeasurements();
+        showToast('✅ Замер обновлён');
+    } else {
+        const rec = { id: Date.now(), date: dateVal };
+        if (!isNaN(weightVal) && weightVal > 0) rec.weight = weightVal;
+        if (!isNaN(chestVal) && chestVal > 0) rec.chest = chestVal;
+        if (!isNaN(waistVal) && waistVal > 0) rec.waist = waistVal;
+        if (!isNaN(hipsVal) && hipsVal > 0) rec.hips = hipsVal;
+        if (notesVal) rec.notes = notesVal;
+        DB.measurements.push(rec);
+        saveDB('measurements');
+        closeMeasurementForm();
+        renderMeasurements();
+        showToast('✅ Замер сохранён');
+    }
 }
 async function deleteMeasurement(id) {
     if (!await customConfirm('Удалить этот замер?', { danger: true, okText: '🗑 Удалить' })) return;
@@ -4883,14 +4934,17 @@ function initWorkoutSettingsFields(w) {
     const continuousBeep = ws.continuousBeep !== undefined ? ws.continuousBeep : DB.settings.continuousBeep;
     const askReps = ws.askReps !== undefined ? ws.askReps : DB.settings.askReps;
     const skipWarmup = ws.skipWarmup !== undefined ? ws.skipWarmup : false;
+    const showStartTime = ws.showStartTime !== undefined ? ws.showStartTime : DB.settings.showStartTime;
     const cdEl = document.getElementById('workout-countdown'); const cdDurEl = document.getElementById('workout-countdown-duration');
     const mbEl = document.getElementById('workout-minute-beep'); const mbIntEl = document.getElementById('workout-minute-beep-interval');
     const anEl = document.getElementById('workout-announce-numbers'); const awnEl = document.getElementById('workout-announce-workout-name');
     const cbEl = document.getElementById('workout-continuous-beep'); const arEl = document.getElementById('workout-ask-reps'); const swEl = document.getElementById('workout-skip-warmup');
+    const sstEl = document.getElementById('workout-show-start-time');
     if (cdEl) cdEl.checked = !!countdown; if (cdDurEl) cdDurEl.value = String(countdownDur || 3);
     if (mbEl) mbEl.checked = !!minuteBeep; if (mbIntEl) mbIntEl.value = String(minuteBeepInt || 60);
     if (anEl) anEl.checked = !!announceNumbers; if (awnEl) awnEl.checked = announceWorkoutName !== false;
     if (cbEl) cbEl.checked = !!continuousBeep; if (arEl) arEl.checked = askReps !== false; if (swEl) swEl.checked = !!skipWarmup;
+    if (sstEl) sstEl.checked = !!showStartTime;
     bindEditorSettingToggles();
     updateEditorSettingVisibility();
 }
@@ -5111,7 +5165,8 @@ async function saveWorkout() {
             announceWorkoutName: document.getElementById('workout-announce-workout-name').checked,
             continuousBeep: document.getElementById('workout-continuous-beep').checked,
             askReps: document.getElementById('workout-ask-reps').checked,
-            skipWarmup: document.getElementById('workout-skip-warmup').checked
+            skipWarmup: document.getElementById('workout-skip-warmup').checked,
+            showStartTime: document.getElementById('workout-show-start-time') ? document.getElementById('workout-show-start-time').checked : !!DB.settings.showStartTime
         };
         const data = { name, autoStart, exercises: editorExercises, settings };
         if (editingIsTemplate) {
@@ -5254,10 +5309,11 @@ function resumeTimer(type) { runState[`${type}StartTime`] = Date.now(); runState
 function stopTimer(type) { runState[`${type}StartTime`] = null; runState[`${type}ElapsedBeforePause`] = 0; runState[`${type}Paused`] = false; runState[`${type}Duration`] = 0; runState[`${type}BeepPlayed`] = false; runState.lastBeepTargetTime = undefined; }
 function getCurrentElapsed(type) {
     const s = runState; if (!s) return 0;
-    if (s[`${type}Paused`]) return s[`${type}ElapsedBeforePause`] || 0;
+    if (s[`${type}Paused`]) return Math.max(0, s[`${type}ElapsedBeforePause`] || 0);
     const st = s[`${type}StartTime`]; const bp = s[`${type}ElapsedBeforePause`] || 0;
-    if (!st) return bp;
-    return bp + Math.floor((Date.now() - st) / 1000);
+    if (!st) return Math.max(0, bp);
+    // Защита от отрицательных значений при сбое системных часов
+    return Math.max(0, bp + Math.floor((Date.now() - st) / 1000));
 }
 function getRemainingTime(type) { return Math.max(0, (runState[`${type}Duration`] || 0) - getCurrentElapsed(type)); }
 function getOvertime(type) { return Math.max(0, getCurrentElapsed(type) - (runState[`${type}Duration`] || 0)); }
@@ -6045,7 +6101,7 @@ function renderRun() {
     currentExEl.style.color = '';
     currentExEl.classList.remove('long', 'very-long');
     phaseLabel.className = 'phase-label';
-    if (DB.settings.showStartTime && runState.startTime) { startDisplay.style.display = 'block'; startValue.innerText = formatClock(runState.startTime); }
+    if (getEffectiveSetting('showStartTime') && runState.startTime) { startDisplay.style.display = 'block'; startValue.innerText = formatClock(runState.startTime); }
     else startDisplay.style.display = 'none';
     phaseLabel.style.display = 'block';
     const nameLen = (el.kind === 'exercise' ? (el.name || '').length : 0);
@@ -6523,7 +6579,14 @@ function renderHistoryList() {
     const totalWork = items.reduce((s, r) => s + (r.workTime || 0), 0);
     const totalDuration = items.reduce((s, r) => s + (r.totalDuration || 0), 0);
     const totalWarmup = items.reduce((s, r) => s + (r.warmupSeconds || 0), 0);
-    const summaryHtml = `<div class="history-summary-card"><div class="history-summary-title">Найдено</div><div class="history-summary-big">${items.length}</div><div class="history-summary-big-sub">${pluralWorkouts(items.length)}</div><div class="history-summary-row"><div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalDuration))}</div><div class="lbl">⏱ общее</div></div><div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWork))}</div><div class="lbl">💪 работа</div></div>${totalWarmup > 0 ? `<div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWarmup))}</div><div class="lbl">🔥 разминка</div></div>` : ''}</div></div>`;
+    let limitWarn = '';
+    const histLen = DB.history.length;
+    if (histLen >= HISTORY_HARD_LIMIT) {
+        limitWarn = `<div style="margin-top:10px;padding:10px 12px;background:var(--warn-soft);border-radius:10px;font-size:0.82rem;color:var(--warn);">⚠️ История заполнена (${histLen}/${HISTORY_HARD_LIMIT}). Старые записи будут удаляться.</div>`;
+    } else if (histLen >= Math.floor(HISTORY_HARD_LIMIT * 0.85)) {
+        limitWarn = `<div style="margin-top:10px;padding:10px 12px;background:var(--warn-soft);border-radius:10px;font-size:0.82rem;color:var(--warn);">⏳ История почти заполнена: ${histLen} из ${HISTORY_HARD_LIMIT}. Рекомендуется сделать бэкап.</div>`;
+    }
+    const summaryHtml = `<div class="history-summary-card"><div class="history-summary-title">Найдено</div><div class="history-summary-big">${items.length}</div><div class="history-summary-big-sub">${pluralWorkouts(items.length)}</div><div class="history-summary-row"><div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalDuration))}</div><div class="lbl">⏱ общее</div></div><div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWork))}</div><div class="lbl">💪 работа</div></div>${totalWarmup > 0 ? `<div class="history-summary-item"><div class="val">${formatTime(Math.floor(totalWarmup))}</div><div class="lbl">🔥 разминка</div></div>` : ''}</div>${limitWarn}</div>`;
     if (items.length === 0) { c.innerHTML = summaryHtml + '<div class="empty-state"><span class="icon">🔍</span><div class="title">Ничего не найдено</div></div>'; return; }
     const sorted = [...items].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     c.innerHTML = summaryHtml + sorted.map(r => {
@@ -7213,8 +7276,12 @@ document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         hiddenAt = 0;
         if ((DB.settings.themeMode || 'auto') === 'auto') applyTheme();
-        if (DB.settings.wakeLock && runState && runState.phase !== 'finish') { acquireWakeLock(); if (runState.tickInterval) updateTimersUI(); }
-        if (runState && runState.phase !== 'finish') saveRunState();
+        if (runState && runState.phase !== 'finish') {
+            if (DB.settings.wakeLock) acquireWakeLock();
+            ensureTicker();
+            updateTimersUI();
+            saveRunState();
+        }
         updateFooter();
         if (document.getElementById('screen-home').classList.contains('active')) { try { renderHomeTodayBanner(); renderStreakBanner(); } catch(e) {} }
         updateNotifGrabber();
