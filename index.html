@@ -198,6 +198,52 @@ body.light .notif-grabber-bar::after { background: #888; }
 .notif-side-overlay { position: fixed; inset: 0; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: flex-end; animation: fadeIn 0.2s ease; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding-right: 20px; }
 .notif-side-sheet { width: calc(100% - 40px); max-width: 340px; max-height: 80vh; background: rgba(22, 22, 30, 0.5); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); border-radius: var(--r-lg); padding: 16px; animation: slideInRight 0.3s cubic-bezier(0.2, 0.9, 0.3, 1); display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-lg); position: relative; overflow: visible; margin-top: 5px; }
 body.light .notif-side-sheet { background: rgba(255, 255, 255, 0.85); border: 1px solid var(--border); }
+/* Единный визуальный стиль меню действий, открываемых кнопкой ⋮. Только оформление. */
+/* Единый стиль меню действий: заголовок раздела и подписи под пунктами */
+.action-menu-overlay { justify-content:center !important; align-items:center !important; padding:16px !important; }
+.action-menu-overlay .notif-side-sheet {
+    width:min(100%, 500px) !important; max-width:500px !important;
+    max-height:min(86dvh, 760px) !important; overflow-y:auto !important;
+    margin:0 !important; padding:20px 18px 16px !important;
+    gap:10px !important; border:1px solid var(--border-soft) !important;
+    border-radius:28px !important; background:var(--card) !important;
+    box-shadow:var(--shadow-lg) !important;
+}
+.action-menu-overlay .notif-side-sheet .notif-side-grabber { display:none !important; }
+.action-menu-overlay .notif-side-sheet .sheet-title {
+    margin:2px 0 10px !important; text-align:center !important;
+    font-size:1.05rem !important; line-height:1.3 !important;
+    font-weight:800 !important; letter-spacing:.7px !important;
+    text-transform:uppercase !important; color:var(--text) !important;
+}
+.action-menu-item { display:flex; flex-direction:column; gap:5px; width:100%; }
+.action-menu-item > .btn {
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    width:100% !important; min-height:50px !important; margin:0 !important;
+    padding:12px 14px !important; border:0 !important; border-radius:15px !important;
+    background:var(--card-2) !important; color:var(--text) !important;
+    box-shadow:none !important; font-size:.96rem !important; font-weight:650 !important;
+    line-height:1.25 !important; text-align:center !important;
+}
+.action-menu-item > .btn.accent { color:var(--accent) !important; background:var(--accent-soft) !important; }
+.action-menu-item > .btn.danger { color:var(--danger) !important; background:rgba(248,113,113,.10) !important; }
+/* Подпись — отдельный обычный текст под самостоятельной кнопкой. */
+.action-menu-description { margin:0 !important; padding:3px 8px 7px !important; border:0 !important; border-radius:0 !important; background:transparent !important; color:var(--muted) !important; font-size:.76rem !important; line-height:1.4 !important; text-align:center !important; }
+.action-menu-item:has(.btn.accent) .action-menu-description,
+.action-menu-item:has(.btn.danger) .action-menu-description { background:transparent !important; }
+.action-menu-overlay .notif-side-sheet > .btn.sheet-btn-cancel {
+    justify-content:center !important; min-height:44px !important; margin-top:3px !important;
+    padding:10px !important; background:transparent !important; border:0 !important;
+    color:var(--muted) !important; font-weight:550 !important;
+}
+.action-menu-overlay .notif-side-sheet > div:not(.notif-side-grabber):not(.action-menu-item) {
+    padding:0 8px; text-align:center !important; color:var(--muted) !important;
+    font-size:.76rem !important; line-height:1.4 !important;
+}
+.action-menu-overlay .notif-side-sheet .btn:active { transform:scale(.985); filter:brightness(1.06); }
+body.light .action-menu-overlay .notif-side-sheet { background:var(--card) !important; }
+@media (max-width:380px) { .action-menu-overlay .notif-side-sheet { padding:17px 13px 13px !important; border-radius:24px !important; } }
+
 body.light .notif-side-sheet .sheet-title { color: var(--text); }
 body.light .notif-side-sheet .notif-name { color: var(--text); }
 body.light .notif-side-sheet .notif-sub { color: var(--muted); }
@@ -1068,7 +1114,7 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
     <div class="top-bar">
         <button class="back-btn" onclick="closeSettings()" aria-label="Назад">←</button>
         <h1>Настройки</h1>
-        <div class="spacer"></div>
+        <button class="back-btn" onclick="openSettingsActions()" aria-label="Действия" title="Действия" style="font-size:1.2rem;">⋮</button>
     </div>
     <input type="text" id="settings-search" class="input" placeholder="🔍 Поиск по настройкам..." oninput="filterSettings(this.value)" style="margin-bottom:16px;">
     <details class="settings-group" open data-group="appearance">
@@ -1205,12 +1251,10 @@ body.light .ft-toast { background: rgba(255,255,255,0.95); }
         <summary>💾 Данные</summary>
         <div class="group-body">
             <div class="checkbox-row"><input type="checkbox" id="set-auto-backup"><label for="set-auto-backup">💾 Напоминать о бэкапе<span class="hint">Раз в 20 тренировок или 7 дней · <span id="last-backup-info">—</span></span></label></div>
-            <button class="btn ghost" onclick="exportData()">💾 Сделать бэкап (JSON)</button>
             <button class="btn ghost" onclick="exportCSV()">📥 Экспорт истории (CSV)</button>
             <button class="btn ghost" onclick="openImportPicker('data')">📥 Импорт данных</button>
             <button class="btn danger" onclick="clearHistory()">🗑 Очистить историю</button>
             <button class="btn ghost" onclick="restoreBuiltins()">🔄 Восстановить шаблоны</button>
-            <button class="btn ghost" onclick="resetAllSettings()" style="color:var(--warn); border-color:var(--warn);">↺ Сбросить настройки</button>
         </div>
     </details>
     <details class="settings-group" data-group="about">
@@ -4353,10 +4397,68 @@ function refreshActivity() {
     renderActivity();
     showToast('↻ Активность обновлена');
 }
+
+function decorateActionMenu(overlay, sectionName) {
+    try {
+        const sheet = overlay && overlay.querySelector('.notif-side-sheet');
+        if (!sheet) return;
+        const title = sheet.querySelector('.sheet-title');
+        if (title) title.textContent = `${sectionName} · ДЕЙСТВИЯ`;
+        const descriptions = [
+            [/создать тренировку/i, 'Открыть редактор и собрать новую тренировку.'],
+            [/создать шаблон/i, 'Создать шаблон, который можно использовать повторно.'],
+            [/создать программу/i, 'Составить план тренировок и расписание.'],
+            [/добавить замер/i, 'Записать новые показатели и отслеживать изменения.'],
+            [/выбрать/i, 'Отметить несколько элементов для группового действия.'],
+            [/обновить статистику/i, 'Пересчитать и обновить данные на экране.'],
+            [/обновить/i, 'Обновить список и показать актуальные данные.'],
+            [/вернуть исходный порядок/i, 'Восстановить стандартный порядок карточек.'],
+            [/свернуть|развернуть/i, 'Изменить отображение всех разделов сразу.'],
+            [/сбросить поиск/i, 'Очистить поисковый запрос и вернуть полный список.'],
+            [/сделать бэкап/i, 'Создать зашифрованную резервную копию данных приложения. Для восстановления понадобится пароль.'],
+            [/сбросить настройки/i, 'Вернуть параметры приложения к исходным значениям. Тренировки, программы и история сохранятся.'],
+            [/удалить все мои шаблоны/i, 'Удалить пользовательские шаблоны. Это действие потребует подтверждения.'],
+            [/восстановить скрытые/i, 'Вернуть в список ранее скрытые встроенные шаблоны.'],
+            [/удалить все/i, 'Удалить все элементы этого раздела. Перед удалением будет запрос подтверждения.'],
+            [/удалить всю историю/i, 'Очистить записи истории тренировок. Перед удалением будет запрос подтверждения.'],
+            [/изменить порядок/i, 'Переставить упражнения в текущей тренировке.'],
+            [/общие настройки/i, 'Открыть настройки приложения, не завершая тренировку.'],
+            [/завершить сейчас/i, 'Завершить текущую тренировку и сохранить результат.'],
+            [/отменить тренировку/i, 'Прервать тренировку без сохранения результата.'],
+            [/поделиться результатом/i, 'Поделиться итогами завершённой тренировки.'],
+            [/сохранить как шаблон/i, 'Сохранить эту тренировку как шаблон для будущего использования.'],
+            [/повторить тренировку/i, 'Запустить эту тренировку ещё раз.'],
+            [/на главную/i, 'Вернуться на главный экран приложения.'],
+            [/назад/i, 'Вернуться к предыдущему экрану.'],
+        ];
+        Array.from(sheet.children).forEach((child) => {
+            if (!child.matches('button.btn') || child.classList.contains('sheet-btn-cancel')) return;
+            if (child.parentElement && child.parentElement.classList.contains('action-menu-item')) return;
+            const label = (child.textContent || '').replace(/\s+/g, ' ').trim();
+            const match = descriptions.find(([pattern]) => pattern.test(label));
+            const desc = match ? match[1] : 'Выполнить действие в текущем разделе.';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'action-menu-item';
+            child.parentNode.insertBefore(wrapper, child);
+            wrapper.appendChild(child);
+            const existingCaption = wrapper.nextElementSibling;
+            if (existingCaption && existingCaption.tagName === 'DIV' && !existingCaption.classList.contains('notif-side-grabber') && !existingCaption.classList.contains('action-menu-item')) {
+                existingCaption.classList.add('action-menu-description');
+                wrapper.appendChild(existingCaption);
+            } else {
+                const caption = document.createElement('div');
+                caption.className = 'action-menu-description';
+                caption.textContent = desc;
+                wrapper.appendChild(caption);
+            }
+        });
+    } catch (e) { console.warn('[decorateActionMenu]', e); }
+}
+
 function openActivityMenu() {
     if (hasOpenOverlay()) return;
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet">
         <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
         <h2 class="sheet-title">Активность</h2>
@@ -4365,6 +4467,7 @@ function openActivityMenu() {
         <button class="btn ghost" onclick="closeTopSheet(); refreshActivity();">↻ Обновить статистику</button>
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
     </div>`;
+    decorateActionMenu(ov, 'Активность');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) closeTopSheet(); });
@@ -4687,8 +4790,9 @@ async function deleteWorkoutById(id) {
 
 function openWorkoutsActions() {
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(workoutsSelectionMode) exitWorkoutsBulkMode(); openEditor(null, false);">+ Создать тренировку</button><button class="btn ghost" onclick="closeTopSheet(); enterWorkoutsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderWorkoutsList(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.workouts.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllWorkouts();">Удалить все (${DB.workouts.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    decorateActionMenu(ov, 'Тренировки');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -4720,8 +4824,9 @@ function openTemplatesActions() {
     const hiddenCount = DB.settings.hiddenBuiltins.length;
     const userCount = DB.templates.length;
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(templatesSelectionMode) exitTemplatesBulkMode(); openEditor(null, true);">+ Создать шаблон</button><button class="btn ghost" onclick="closeTopSheet(); enterTemplatesBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderTemplates(); showToast('↻ Обновлено');">↻ Обновить</button>${userCount > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllTemplates();">Удалить все мои шаблоны (${userCount})</button>` : ''}${hiddenCount > 0 ? `<button class="btn ghost" onclick="closeTopSheet(); restoreBuiltins();">🔄 Восстановить скрытые (${hiddenCount})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    decorateActionMenu(ov, 'Шаблоны');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -4751,8 +4856,9 @@ async function deleteAllTemplates() {
 
 function openProgramsActions() {
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(programsSelectionMode) exitProgramsBulkMode(); openProgramEditor(null);">+ Создать программу</button><button class="btn ghost" onclick="closeTopSheet(); enterProgramsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderPrograms(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.programs.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllPrograms();">Удалить все (${DB.programs.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    decorateActionMenu(ov, 'Программы');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -4782,8 +4888,9 @@ async function deleteAllPrograms() {
 
 function openMeasurementsActions() {
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(measurementsSelectionMode) exitMeasurementsBulkMode(); openMeasurementForm();">+ Добавить замер</button><button class="btn ghost" onclick="closeTopSheet(); enterMeasurementsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderMeasurements(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.measurements.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllMeasurements();">Удалить все (${DB.measurements.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    decorateActionMenu(ov, 'Замеры');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -6804,7 +6911,7 @@ function fireConfetti() {
     } catch(e) {}
 }
 
-// === Quick Start Presets (v1.2.5) ===
+// === Quick Start Presets (v1.3) ===
 function isWorkoutActive() {
     // Active only if runState exists AND phase is a real running phase
     if (!runState || !runState.phase) return false;
@@ -7363,8 +7470,9 @@ function getFilteredHistory() {
 }
 function openHistoryActions() {
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn ghost" onclick="closeTopSheet(); enterHistoryBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderHistory(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.history.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); clearHistory();">Удалить всю историю (${DB.history.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    decorateActionMenu(ov, 'История');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
@@ -7710,6 +7818,48 @@ function updateErrorLogInfo() {
         else { el.innerHTML = `⚠️ <a href="#" onclick="showErrorLog(); return false;" style="color:var(--danger); text-decoration:underline;">Ошибок в логе: ${log.length}</a>`; }
     } catch(e) { el.textContent = ''; }
 }
+function getSettingsGroupsState() {
+    const groups = Array.from(document.querySelectorAll('#screen-settings .settings-group'));
+    return { groups, allOpen: groups.length > 0 && groups.every(group => group.open) };
+}
+function getSettingsGroupsActionLabel() {
+    return getSettingsGroupsState().allOpen ? 'Свернуть все разделы' : 'Развернуть все разделы';
+}
+function toggleAllSettingsGroups() {
+    const state = getSettingsGroupsState();
+    const shouldOpen = !state.allOpen;
+    state.groups.forEach(group => { group.open = shouldOpen; });
+    showToast(shouldOpen ? 'Все разделы развернуты' : 'Все разделы свёрнуты');
+}
+function resetSettingsSearch() {
+    const input = document.getElementById('settings-search');
+    if (input) input.value = '';
+    filterSettings('');
+    const scroller = document.querySelector('.app-container');
+    if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function openSettingsActions() {
+    if (hasOpenOverlay()) return;
+    const ov = document.createElement('div');
+    ov.className = 'notif-side-overlay action-menu-overlay';
+    const hasSearch = !!((document.getElementById('settings-search')?.value || '').trim());
+    ov.innerHTML = `<div class="notif-side-sheet">
+        <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
+        <h2 class="sheet-title">Настройки · Действия</h2>
+        <button class="btn ghost" onclick="closeTopSheet(); toggleAllSettingsGroups();">${getSettingsGroupsActionLabel()}</button>
+        ${hasSearch ? '<button class="btn ghost" onclick="closeTopSheet(); resetSettingsSearch();">✕ Сбросить поиск</button>' : ''}
+        <button class="btn ghost" onclick="closeTopSheet(); exportData();">💾 Сделать бэкап</button>
+        <div style="color:var(--muted);font-size:.78rem;line-height:1.4;text-align:center;">Создаёт зашифрованную резервную копию всех данных приложения. Для восстановления понадобится пароль.</div>
+        <button class="btn danger" onclick="closeTopSheet(); resetAllSettings();">↺ Сбросить настройки</button>
+        <div style="color:var(--muted);font-size:.78rem;line-height:1.4;text-align:center;">Сброс вернёт параметры приложения к исходным значениям. Тренировки, программы и история сохранятся.</div>
+        <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
+    </div>`;
+    decorateActionMenu(ov, 'Настройки');
+    document.body.appendChild(ov);
+    setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) closeTopSheet(); });
+}
+
 function filterSettings(q) {
     q = (q || '').toLowerCase().trim();
     const DYNAMIC_IDS = ['minute-beep-options', 'countdown-interval-options', 'quiet-hours-row', 'streak-guard-hour-row', 'vibration-warning'];
@@ -8186,7 +8336,7 @@ function openFinishedWorkoutMenu() {
         [...DB.history].reverse().find(r => r.workoutId === workoutId);
     const recordId = record ? record.id : null;
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet">
         <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
         <h2 class="sheet-title">Действия с тренировкой</h2>
@@ -8197,6 +8347,7 @@ function openFinishedWorkoutMenu() {
         <button class="btn ghost" onclick="closeTopSheet(); showScreen('screen-home');">🏠 На главную</button>
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
     </div>`;
+    decorateActionMenu(ov, 'Итоги тренировки');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) closeTopSheet(); });
@@ -8253,7 +8404,7 @@ function openRunMenu() {
     }
 
     const ov = document.createElement('div');
-    ov.className = 'notif-side-overlay';
+    ov.className = 'notif-side-overlay action-menu-overlay';
     ov.innerHTML = `<div class="notif-side-sheet">
         <div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div>
         <h2 class="sheet-title">Управление тренировкой</h2>
@@ -8263,6 +8414,7 @@ function openRunMenu() {
         <button class="btn danger" onclick="closeTopSheet(); cancelWorkout();">✕ Отменить тренировку</button>
         <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Закрыть</button>
     </div>`;
+    decorateActionMenu(ov, 'Тренировка');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov, () => { resumeTimersFromMenu(); });
     ov.addEventListener('click', (e) => { if (e.target === ov) { resumeTimersFromMenu(); ov.remove(); } });
@@ -8367,7 +8519,7 @@ function openRunQueueEditor() {
             }
 
             let statusBadge = '';
-            if (isCurrent) statusBadge = `<span style="font-size:0.68rem; background:var(--accent); color:#0a0a10; padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">СЕЙЧАС</span>`;
+            if (isCurrent) statusBadge = `<span class="run-queue-status-badge" style="display:inline-block; white-space:nowrap; vertical-align:middle; font-size:0.68rem; background:var(--accent); color:#0a0a10; padding:2px 6px; border-radius:6px; font-weight:700; margin:2px 0 0 6px;">СЕЙЧАС</span>`;
             else if (isDone || (isPastWarmup && !isCurrent)) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">✓</span>`;
             else if (isSkipped) statusBadge = `<span style="font-size:0.68rem; background:var(--card-3); color:var(--muted); padding:2px 6px; border-radius:6px; font-weight:700; margin-left:6px;">⏭</span>`;
 
