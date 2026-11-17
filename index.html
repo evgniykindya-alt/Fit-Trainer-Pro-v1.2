@@ -1100,6 +1100,27 @@ h2 { letter-spacing:.9px; font-size:.88rem; color:var(--muted); font-weight:800;
   .card,.menu-btn,.workout-item,.history-card,.template-card,.settings-group { transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease; }
 }
 
+
+
+/* Исправление нижней навигации PWA: высота панели равна высоте кнопок.
+   Safe Area больше не добавляется второй раз к высоте и внутреннему отступу. */
+.bottom-nav {
+    height: var(--nav-h) !important;
+    min-height: var(--nav-h) !important;
+    max-height: var(--nav-h) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    bottom: 0 !important;
+    align-items: stretch !important;
+}
+.bottom-nav .nav-btn {
+    height: 100% !important;
+    min-height: 0 !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    box-sizing: border-box !important;
+}
 </style>
 
 </head>
