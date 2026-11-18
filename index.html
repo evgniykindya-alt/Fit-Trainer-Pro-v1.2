@@ -1286,9 +1286,14 @@ h2 { letter-spacing:.9px; font-size:.88rem; color:var(--muted); font-weight:800;
         <summary>⚙️ Настройки тренировки</summary>
         <div style="padding: 0 14px 14px;">
             <div class="editor-settings-card">
+                
+                <div id="workout-settings-global-note"
+                     style="display:none;text-align:center;color:var(--muted);font-size:.78rem;line-height:1.45;font-weight:500;letter-spacing:.1px;padding:12px 14px 14px;margin:0 0 2px;background:transparent;border:0;border-bottom:1px solid var(--border-soft);border-radius:0;box-shadow:none;">
+                    Используются общие параметры приложения.<br>
+                    Чтобы задать отдельные параметры, выберите «Настройки тренировки» в разделе настроек.
+                </div>
                 <div class="checkbox-row"><input type="checkbox" id="auto-start"><label for="auto-start">🔄 Автозапуск упражнения</label></div>
-                <div id="workout-settings-global-note" style="display:none;color:var(--muted);font-size:.8rem;line-height:1.4;padding:10px 12px;background:var(--card-2);border-radius:var(--r-sm);margin-bottom:8px;">Используются общие параметры приложения. Чтобы задать отдельные параметры, выберите «Настройки тренировки» в разделе настроек.</div>
-                <div class="checkbox-row"><input type="checkbox" id="workout-countdown"><label for="workout-countdown">⏱ Обратный отсчёт перед упражнением</label></div>
+<div class="checkbox-row"><input type="checkbox" id="workout-countdown"><label for="workout-countdown">⏱ Обратный отсчёт перед упражнением</label></div>
                 <div id="workout-countdown-interval-row" class="editor-subrow" style="display:none;">
                     <label>Длительность:</label>
                     <select id="workout-countdown-duration" class="select">
@@ -5756,6 +5761,12 @@ function bindEditorSettingToggles() {
 }
 function updateEditorWorkoutSettingsMode() {
     const globalMode = DB.settings.workoutSettingsPriority !== 'workout';
+    const autoStartEl = document.getElementById('auto-start');
+    if (autoStartEl) {
+        autoStartEl.disabled = globalMode;
+        // In global mode the checkbox reflects the application-wide value.
+        if (globalMode) autoStartEl.checked = !!DB.settings.defaultAutoStart;
+    }
     const ids = ['workout-countdown','workout-countdown-duration','workout-minute-beep','workout-minute-beep-interval',
         'workout-announce-numbers','workout-announce-workout-name','workout-continuous-beep',
         'workout-ask-reps','workout-skip-warmup','workout-show-start-time'];
@@ -5825,7 +5836,7 @@ function openEditor(id, isTemplate) {
             if (ex.kind === 'exercise' && ex.type === 'timer' && ex.timerDuration !== null && ex.timerDuration !== undefined && !REST_PRESETS.some(p => p.v === ex.timerDuration)) ex.customTimerDuration = true;
         });
         document.getElementById('workout-name').value = w.name;
-        document.getElementById('auto-start').checked = w.autoStart;
+        document.getElementById('auto-start').checked = DB.settings.workoutSettingsPriority === 'workout' ? (w.autoStart !== undefined ? !!w.autoStart : !!DB.settings.defaultAutoStart) : !!DB.settings.defaultAutoStart;
         document.getElementById('editor-title').innerText = isTemplate ? 'Редактирование шаблона' : 'Редактирование';
         document.getElementById('delete-btn').style.display = 'block';
         document.getElementById('export-btn').style.display = 'block';
@@ -5998,7 +6009,14 @@ async function saveWorkout() {
             if (ex.customDuration !== undefined) delete ex.customDuration;
             if (ex.customTimerDuration !== undefined) delete ex.customTimerDuration;
         });
-        const autoStart = document.getElementById('auto-start').checked;
+        const existingForAutoStart = editingId !== null
+            ? (editingIsTemplate ? DB.templates : DB.workouts).find(x => x.id === editingId)
+            : null;
+        const autoStart = DB.settings.workoutSettingsPriority === 'workout'
+            ? !!document.getElementById('auto-start').checked
+            : (existingForAutoStart && typeof existingForAutoStart.autoStart === 'boolean'
+                ? existingForAutoStart.autoStart
+                : !!DB.settings.defaultAutoStart);
         const settings = DB.settings.workoutSettingsPriority === 'workout' ? {
             countdown: document.getElementById('workout-countdown').checked,
             countdownDuration: parseInt(document.getElementById('workout-countdown-duration').value) || 3,
@@ -6219,12 +6237,16 @@ async function startWorkout(id, isDeload) {
         const w = DB.workouts.find(x => x.id === id);
         if (!w) { showToast('⚠️ Тренировка не найдена'); return; }
         try { await requestNotificationPermission(); } catch(e) {}
-        let workoutForRun = w;
+        // Resolve auto-start once at launch: global priority uses the app setting,
+        // per-workout priority uses the saved workout value. Never mutate DB.workouts.
+        let workoutForRun = JSON.parse(JSON.stringify(w));
+        workoutForRun.autoStart = DB.settings.workoutSettingsPriority === 'workout'
+            ? (typeof w.autoStart === 'boolean' ? w.autoStart : !!DB.settings.defaultAutoStart)
+            : !!DB.settings.defaultAutoStart;
         let deloadPercent = isDeload ? 35 : 0;
         if (isDeload) {
             const ok = await customConfirm('🏷 Разгрузочный день.\n\nСнизить целевые показатели на 35%?\n\n(подходы и повторения будут уменьшены, тренировка не попадёт в рекорды)', { title: 'Разгрузка', okText: '✅ Снизить на 35%', cancelText: 'Тренироваться обычно', danger: false });
             if (ok) {
-                workoutForRun = JSON.parse(JSON.stringify(w));
                 workoutForRun.exercises = workoutForRun.exercises.map(el => {
                     if (el.kind !== 'exercise') return el;
                     const copy = Object.assign({}, el);
@@ -6266,7 +6288,7 @@ async function startWorkout(id, isDeload) {
         runReturnScreen = 'screen-workouts';
         acquireWakeLock(); enableExitProtection();
         renderRun(); showScreen('screen-run'); saveRunState();
-        if (w.autoStart) setTimeout(() => {
+        if (workoutForRun.autoStart) setTimeout(() => {
             if (runState && runState.phase === 'ready' && !runState.workoutNameAnnounced && !runState._flowStarting) { beginCurrentElementFlow(true); }
         }, 400);
     } finally { startWorkoutInProgress = false; }
