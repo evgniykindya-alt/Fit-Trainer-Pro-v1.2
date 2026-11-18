@@ -1121,6 +1121,55 @@ h2 { letter-spacing:.9px; font-size:.88rem; color:var(--muted); font-weight:800;
     padding-bottom: 4px !important;
     box-sizing: border-box !important;
 }
+
+/* iOS/PWA: не показывать системное выделение текста на карточках,
+   которые поддерживают перетаскивание. Поля ввода остаются редактируемыми. */
+.workout-item,
+.template-card,
+.activity-card {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
+}
+.workout-item *,
+.template-card *,
+.activity-card * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+.workout-item input,
+.workout-item textarea,
+.workout-item select,
+.template-card input,
+.template-card textarea,
+.template-card select,
+.activity-card input,
+.activity-card textarea,
+.activity-card select,
+.workout-item [contenteditable="true"],
+.template-card [contenteditable="true"],
+.activity-card [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+}
+/* На время активного drag блокируем выделение и системное контекстное меню iOS. */
+body.no-scroll,
+body.no-scroll * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+body.no-scroll input,
+body.no-scroll textarea,
+body.no-scroll select,
+body.no-scroll [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
 </style>
 
 </head>
@@ -2250,7 +2299,7 @@ function processNextAskReps() {
         </div>
         <div class="reps-row-main">
             <button class="btn small ghost reps-btn" data-d="-3">-3</button>
-            <input type="number" id="ask-reps-input" class="input reps-input" min="0" max="999" step="1" value="${def}">
+            <input type="number" id="ask-reps-input" class="input reps-input" min="0" max="999" step="1" inputmode="numeric" autocomplete="off" value="${def}">
             <button class="btn small ghost reps-btn" data-d="+3">+3</button>
         </div>
         <div class="reps-row-aux">
@@ -2263,7 +2312,8 @@ function processNextAskReps() {
     document.body.appendChild(overlay);
     setupSideSwipe(overlay.querySelector('.notif-side-sheet'), overlay);
     const input = overlay.querySelector('#ask-reps-input');
-    setTimeout(() => { try { input.focus(); input.select(); } catch(e) {} }, 100);
+    // Не выделяем значение и не открываем клавиатуру автоматически на iPhone.
+    // Пользователь может в любой момент нажать на поле и ввести число вручную.
     overlay.querySelectorAll('[data-d]').forEach(btn => {
         btn.onclick = () => {
             const d = parseInt(btn.dataset.d);
