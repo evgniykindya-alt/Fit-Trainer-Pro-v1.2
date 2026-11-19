@@ -219,11 +219,11 @@ body.nav-visible .bottom-nav { display: flex; }
 .timer-mute-btn.muted { color: var(--muted-2); background: rgba(40, 40, 50, 0.6); }
 .notif-grabber { position: fixed !important; right: 0 !important; top: calc(50% + 5px) !important; transform: translateY(-50%) !important; z-index: 101 !important; padding: 0 !important; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; display: flex; align-items: center; justify-content: center; background: transparent !important; border: none !important; box-shadow: none !important; margin: 0 !important; width: auto !important; }
 .notif-grabber:active { opacity: 0.7; }
-.notif-grabber-bar { width: 14px; height: 48px; border-radius: 8px 0 0 8px; background: rgba(31, 31, 40, 0.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--border-soft); border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: height 0.15s; }
+.notif-grabber-bar { width: 14px; height: 55px; border-radius: 8px 0 0 8px; background: rgba(31, 31, 40, 0.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--border-soft); border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: height 0.15s; }
 body.light .notif-grabber-bar { background: #e5e5ea; border-color: #d1d1d6; border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.05); }
-.notif-grabber-bar::after { content: ''; width: 4px; height: 24px; background: var(--muted-2); border-radius: 2px; }
+.notif-grabber-bar::after { content: ''; width: 4px; height: 30px; background: var(--muted-2); border-radius: 2px; }
 body.light .notif-grabber-bar::after { background: #888; }
-.notif-grabber:active .notif-grabber-bar { height: 56px; }
+.notif-grabber:active .notif-grabber-bar { height: 60px; }
 .notif-grabber-badge { position: absolute; top: -6px; left: -6px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 0.65rem; font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0 5px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); pointer-events: none; line-height: 1; }
 .notif-section-title { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin: 8px 4px 4px; }
 .notif-section-title:first-child { margin-top: 0; }
@@ -1289,7 +1289,7 @@ body.no-scroll [contenteditable="true"] {
     <h1>💪 Fit Trainer Pro v1.2.5</h1>
     <div id="streak-banner-home"></div>
     <div id="home-today-banner" style="display:none;"></div>
-    <div id="quick-start-section" class="card" style="margin-bottom:16px; padding:14px; border: 1px solid var(--primary); box-shadow:var(--shadow-sm);">
+    <div id="quick-start-section" class="card" style="margin-bottom:16px; padding:14px;  box-shadow:var(--shadow-sm);">
         <div class="activity-card-header" onclick="toggleQuickStart()" style="margin-bottom:0; padding:2px 0;">
             <div class="activity-card-title" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); font-weight:600;">⚡ Быстрый старт</div>
             <div style="display:flex; align-items:center; gap:4px;">
