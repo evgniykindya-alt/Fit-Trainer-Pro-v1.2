@@ -118,9 +118,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     margin-left: 8px;
 }
 .app-container { width: 100%; height: 100vh; height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-top: var(--sat); }
-.screen { display: none; padding: 16px 16px calc(40px + var(--sab)) 16px; min-height: 100%; box-sizing: border-box; }
+.screen { display: none; padding: 16px 16px calc(40px + var(--sab)) 16px; min-height: 100%; box-sizing: border-box; overflow-x: hidden; max-width: 100%; }
 body.nav-visible .screen { padding-bottom: calc(var(--nav-h) + var(--sab) + 16px); }
 .screen.active { display: block; animation: screenIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.select { max-width: 100%; box-sizing: border-box; }
 @keyframes screenIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 h1 { font-size: 1.65rem; font-weight: 700; margin: 8px 0 18px; letter-spacing: -0.4px; }
 h2 { color: var(--primary); margin: 22px 0 12px; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase; }
@@ -315,21 +316,21 @@ textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
 .rest-row, .notes-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .rest-row label, .notes-row label { color: var(--muted); font-size: 0.85rem; flex-shrink: 0; }
 .rest-row .select { flex: 1; margin: 0; padding: 8px 32px 8px 10px; font-size: 0.9rem; }
-.checkbox-row { display: flex; align-items: center; gap: 12px; background: var(--card-2); padding: 14px; border-radius: var(--r-sm); margin-bottom: 10px; }
+.checkbox-row { display: flex; align-items: center; gap: 12px; background: var(--card-2); padding: 14px; border-radius: var(--r-sm); margin-bottom: 10px; box-sizing: border-box; width: 100%; min-width: 0; overflow: hidden; }
 .checkbox-row input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary); flex-shrink: 0; }
-.checkbox-row label { cursor: pointer; flex: 1; font-size: 0.95rem; }
+.checkbox-row label { cursor: pointer; flex: 1; font-size: 0.95rem; min-width: 0; word-break: break-word; }
 .checkbox-row .hint { color: var(--muted); font-size: 0.78rem; display: block; margin-top: 3px; font-weight: 400; }
 .checkbox-row.disabled { opacity: 0.45; pointer-events: none; }
 .editor-settings-card { background: var(--card); border-radius: var(--r-md); margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
 .editor-settings-card .checkbox-row { background: transparent; margin: 0; border-radius: 0; }
 .editor-settings-card .checkbox-row + .checkbox-row { border-top: 1px solid var(--border-soft); }
-.editor-subrow { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--card-2); border-top: 1px solid var(--border-soft); border-radius: var(--r-sm); }
-.editor-subrow label { color: var(--muted); font-size: 0.85rem; flex-shrink: 0; }
-.editor-subrow .select { flex: 1; margin: 0; padding: 8px 32px 8px 10px; font-size: 0.9rem; }
-.sound-section { background: var(--card); border-radius: var(--r-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.editor-subrow { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--card-2); border-top: 1px solid var(--border-soft); border-radius: 0; box-sizing: border-box; width: 100%; min-width: 0; }
+.editor-subrow label { color: var(--muted); font-size: 0.85rem; flex-shrink: 0; max-width: 42%; }
+.editor-subrow .select { flex: 1; margin: 0; min-width: 0; max-width: 100%; padding: 8px 32px 8px 10px; font-size: 0.9rem; box-sizing: border-box; }
+.sound-section { background: var(--card); border-radius: var(--r-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm); box-sizing: border-box; overflow: hidden; }
 .sound-section-title { color: var(--text); font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; }
 .sound-options { display: flex; flex-direction: column; gap: 8px; }
-.sound-option { display: flex; align-items: center; gap: 10px; background: var(--card-2); border: 1.5px solid transparent; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; transition: border-color 0.15s; }
+.sound-option { display: flex; align-items: center; gap: 10px; background: var(--card-2); border: 1.5px solid transparent; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; transition: border-color 0.15s; box-sizing: border-box; width: 100%; min-width: 0; }
 .sound-option.selected { border-color: var(--primary); background: var(--primary-soft); }
 .sound-option .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--muted-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .sound-option.selected .radio { border-color: var(--primary); }
@@ -338,16 +339,54 @@ textarea.input { min-height: 60px; resize: vertical; font-family: inherit; }
 .sound-option .sound-name { font-weight: 600; font-size: 0.95rem; }
 .sound-option .sound-desc { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
 .sound-option .preview-btn { background: var(--card); border: 1px solid var(--border-soft); color: var(--accent); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-.settings-group { background: var(--card); border-radius: var(--r-md); margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.settings-group { background: var(--card); border-radius: var(--r-md); margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow-sm); box-sizing: border-box; }
 .settings-group summary { padding: 16px 18px; font-weight: 700; font-size: 1rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--primary); }
 .settings-group summary::-webkit-details-marker { display: none; }
 .settings-group summary::after { content: '▾'; font-size: 0.9rem; color: var(--muted); transition: transform 0.2s; }
 .settings-group[open] summary::after { transform: rotate(180deg); }
-.settings-group .group-body { padding: 0 14px 14px; }
-.settings-group .group-body .checkbox-row { margin-bottom: 8px; }
+.settings-group .group-body { padding: 12px 12px 14px; box-sizing: border-box; overflow: hidden; }
+.settings-group .group-body .checkbox-row { margin-bottom: 8px; box-sizing: border-box; width: 100%; min-width: 0; }
 .settings-group .group-body .checkbox-row:last-child { margin-bottom: 0; }
-.settings-group .group-body .sound-section { background: var(--card-2); margin-bottom: 8px; }
+.settings-group .group-body .sound-section { background: var(--card-2); margin-bottom: 10px; box-shadow: none; border: 1px solid var(--border-soft); }
+.settings-group .group-body .sound-section:last-of-type { margin-bottom: 8px; }
 .settings-group .group-body .btn { margin-top: 8px; }
+/* Nested list inside sound-section (editor workout settings): flush, no double card */
+.sound-section > .editor-settings-card {
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: var(--card) !important;
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.sound-section > .editor-settings-card .checkbox-row {
+    background: transparent;
+    margin: 0;
+    border-radius: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.sound-section > .editor-settings-card .editor-subrow {
+    border-radius: 0;
+    background: rgba(255,255,255,0.03);
+    width: 100%;
+    box-sizing: border-box;
+}
+body.light .sound-section > .editor-settings-card .editor-subrow {
+    background: rgba(0,0,0,0.03);
+}
+.settings-group .group-body .settings-row-with-sub {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
+.settings-group .group-body .select,
+.editor-subrow .select,
+.settings-row-with-sub .select {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
 .timer-ring-wrap { position: relative; width: 220px; height: 220px; margin: 8px auto; max-width: 80vw; max-height: 80vw; }
 .timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
 .timer-ring-bg { fill: none; stroke: var(--card-2); stroke-width: 6; }
