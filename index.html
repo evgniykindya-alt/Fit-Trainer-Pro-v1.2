@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.2.5">
+<meta name="apple-mobile-web-app-title" content="Fit Trainer Pro v1.2.6">
 <meta name="theme-color" content="#0a0a10">
-<title>Fit Trainer Pro v1.2.5</title>
+<title>Fit Trainer Pro v1.2.6</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%230a0a10'/%3E%3Ctext x='50' y='75' font-size='75' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a78bfa'%3EF%3C/text%3E%3C/svg%3E">
 
 <link rel="manifest" href='data:application/manifest+json,{"name":"Fit Trainer","short_name":"FitTrainer","start_url":".","display":"standalone","background_color":"%230a0a10","theme_color":"%230a0a10","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2750%27 fill=%27%230a0a10%27/%3E%3Ctext x=%2796%27 y=%27140%27 font-size=%27140%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27120%27 fill=%27%230a0a10%27/%3E%3Ctext x=%27256%27 y=%27380%27 font-size=%27380%27 font-family=%27Arial%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23a78bfa%27%3EF%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
@@ -2484,17 +2484,33 @@ function processNextAskReps() {
     const finish = (val) => {
         if (resolved) return;
         resolved = true;
+        try {
+            if (overlay._ftAskObserver) { overlay._ftAskObserver.disconnect(); overlay._ftAskObserver = null; }
+        } catch(e) {}
         const s = overlay.querySelector('.notif-side-sheet');
         if (s) s.style.transform = 'translateX(100%)';
         overlay.style.opacity = '0';
+        // Сразу снимаем busy/флаги логики, чтобы кнопка «Завершить» не зависала,
+        // даже если DOM-оверлей ещё анимируется.
+        askRepsBusy = false;
+        try { item.resolve(val); } catch(e) {}
         setTimeout(() => {
-            try { overlay.remove(); } catch(e) {}
+            try { if (overlay.parentNode) overlay.remove(); } catch(e) {}
             try { updateNotifGrabber(); } catch(e) {}
-            askRepsBusy = false;
-            try { item.resolve(val); } catch(e) {}
             setTimeout(() => processNextAskReps(), 50);
         }, 200);
     };
+    // Единый хук для любого способа закрытия (свайп, closeTopSheet, клик по фону)
+    overlay._ftOnDismiss = () => finish(null);
+    overlay.dataset.ftAskDialog = '1';
+    // Если оверлей удалили из DOM без вызова finish (глобальный свайп / closeTopSheet) — всё равно резолвим
+    try {
+        const obs = new MutationObserver(() => {
+            if (!document.body.contains(overlay) && !resolved) finish(null);
+        });
+        obs.observe(document.body, { childList: true });
+        overlay._ftAskObserver = obs;
+    } catch(e) {}
     setupSideSwipe(overlay.querySelector('.notif-side-sheet'), overlay, () => finish(null));
     overlay.querySelector('#ask-reps-save').onclick = () => {
         const result = {};
@@ -5117,7 +5133,15 @@ function showDayActivityDetail(key) {
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
 }
-function closeTopSheet() { const o = document.querySelectorAll('.notif-side-overlay'); if (o.length) o[o.length - 1].remove(); updateNotifGrabber(); }
+function closeTopSheet() {
+    const o = document.querySelectorAll('.notif-side-overlay');
+    if (o.length) {
+        const last = o[o.length - 1];
+        try { if (typeof last._ftOnDismiss === 'function') { last._ftOnDismiss(); return; } } catch(e) {}
+        try { last.remove(); } catch(e) {}
+    }
+    updateNotifGrabber();
+}
 
 function getPlanStatus(workoutId, date, occurrenceIndex = 0) {
     try {
@@ -6843,7 +6867,13 @@ function toggleWorkPause() {
 }
 let finishExerciseInProgress = false;
 async function finishExercise() {
-    if (finishExerciseInProgress) return;
+    // Защита от «залипшего» флага после свайпа диалога: если промис уже не ждётся — сбрасываем
+    if (finishExerciseInProgress) {
+        const askOpen = !!document.querySelector('.notif-side-overlay[data-ft-ask-dialog="1"]');
+        if (askOpen || askRepsBusy) return;
+        finishExerciseInProgress = false;
+    }
+    if (!runState) return;
     const el = runState.workout.exercises[runState.index];
     if (!el || el.kind !== 'exercise') return;
     finishExerciseInProgress = true;
@@ -7619,6 +7649,19 @@ function forceClearRunState() {
         stopExerciseAlarm();
         releaseWakeLock();
         disableExitProtection();
+    } catch(e) {}
+    // Сброс флагов, которые могут «залипнуть» после свайпа диалога повторов/веса
+    try { finishExerciseInProgress = false; } catch(e) {}
+    try { skipExerciseInProgress = false; } catch(e) {}
+    try {
+        askRepsBusy = false;
+        while (askRepsQueue.length) {
+            const q = askRepsQueue.shift();
+            try { if (q && typeof q.resolve === 'function') q.resolve(null); } catch(err) {}
+        }
+        document.querySelectorAll('.notif-side-overlay[data-ft-ask-dialog="1"]').forEach(ov => {
+            try { if (typeof ov._ftOnDismiss === 'function') ov._ftOnDismiss(); else ov.remove(); } catch(err) {}
+        });
     } catch(e) {}
     runState = null;
     clearSavedRunState();
@@ -9045,7 +9088,21 @@ document.addEventListener('touchstart', (e) => {
         document.removeEventListener('touchend', onEnd);
         sheet.style.transition = 'transform 0.2s ease-out';
         if (overlay) overlay.style.background = '';
-        if (dx > 100) { sheet.style.transform = `translateX(100%)`; if (overlay) overlay.style.opacity = '0'; setTimeout(() => { try { overlay.remove(); } catch(e) {} updateNotifGrabber(); }, 200); }
+        if (dx > 100) {
+            sheet.style.transform = `translateX(100%)`;
+            if (overlay) overlay.style.opacity = '0';
+            // Важно: если это диалог ввода повторов/веса — резолвим промис, иначе зависает finishExercise
+            let handled = false;
+            try {
+                if (overlay && typeof overlay._ftOnDismiss === 'function') {
+                    overlay._ftOnDismiss();
+                    handled = true;
+                }
+            } catch(e) {}
+            if (!handled) {
+                setTimeout(() => { try { if (overlay && overlay.parentNode) overlay.remove(); } catch(e) {} updateNotifGrabber(); }, 200);
+            }
+        }
         else { sheet.style.transform = ''; }
         startX = 0; dx = 0; dragging = false;
     };
@@ -9459,6 +9516,18 @@ async function cancelWorkout() {
     if (runState.countdownInterval) clearInterval(runState.countdownInterval);
     stopRestAlarm(); stopExerciseAlarm(); releaseWakeLock();
     clearSavedRunState(); disableExitProtection();
+    try { finishExerciseInProgress = false; } catch(e) {}
+    try { skipExerciseInProgress = false; } catch(e) {}
+    try {
+        askRepsBusy = false;
+        while (askRepsQueue.length) {
+            const q = askRepsQueue.shift();
+            try { if (q && typeof q.resolve === 'function') q.resolve(null); } catch(err) {}
+        }
+        document.querySelectorAll('.notif-side-overlay[data-ft-ask-dialog="1"]').forEach(ov => {
+            try { if (typeof ov._ftOnDismiss === 'function') ov._ftOnDismiss(); else ov.remove(); } catch(err) {}
+        });
+    } catch(e) {}
     runState = null;
     goAfterRunEnd();
     showToast('❌ Тренировка отменена');
