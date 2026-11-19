@@ -186,9 +186,9 @@ body.nav-visible .bottom-nav { display: flex; }
 .timer-mute-btn.muted { color: var(--muted-2); background: rgba(40, 40, 50, 0.6); }
 .notif-grabber { position: fixed !important; right: 0 !important; top: calc(50% + 5px) !important; transform: translateY(-50%) !important; z-index: 101 !important; padding: 0 !important; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; display: flex; align-items: center; justify-content: center; background: transparent !important; border: none !important; box-shadow: none !important; margin: 0 !important; width: auto !important; }
 .notif-grabber:active { opacity: 0.7; }
-.notif-grabber-bar { width: 14px; height: 48px; border-radius: 8px 0 0 8px; background: rgba(31, 31, 40, 0.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--border-soft); border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: height 0.15s; }
+.notif-grabber-bar { width: 14px; height: 56px; border-radius: 8px 0 0 8px; background: rgba(31, 31, 40, 0.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--border-soft); border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: height 0.15s; }
 body.light .notif-grabber-bar { background: #e5e5ea; border-color: #d1d1d6; border-right: none; box-shadow: -2px 0 8px rgba(0,0,0,0.05); }
-.notif-grabber-bar::after { content: ''; width: 4px; height: 24px; background: var(--muted-2); border-radius: 2px; }
+.notif-grabber-bar::after { content: ''; width: 4px; height: 32px; background: var(--muted-2); border-radius: 2px; }
 body.light .notif-grabber-bar::after { background: #888; }
 .notif-grabber:active .notif-grabber-bar { height: 56px; }
 .notif-grabber-badge { position: absolute; top: -6px; left: -6px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 0.65rem; font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0 5px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); pointer-events: none; line-height: 1; }
