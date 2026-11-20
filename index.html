@@ -1444,9 +1444,14 @@ body.no-scroll [contenteditable="true"] {
         <summary>⚙️ Настройки тренировки</summary>
         <div class="group-body">
             <div id="workout-settings-global-note"
-                 style="display:none;text-align:center;color:var(--muted);font-size:.78rem;line-height:1.45;font-weight:500;letter-spacing:.1px;padding:10px 12px;margin:0 0 10px;background:var(--card-2);border:1px solid var(--border-soft);border-radius:12px;">
-                Используются общие параметры приложения.<br>
-                Чтобы задать отдельные параметры, выберите «Настройки тренировки» в разделе настроек.
+                 style="display:none;text-align:center;color:var(--muted);font-size:.8rem;line-height:1.45;font-weight:500;letter-spacing:.1px;padding:12px;margin:0 0 10px;background:var(--card-2);border:1px solid var(--border-soft);border-radius:12px;">
+                <div style="margin-bottom:10px;">У этой тренировки — <b style="color:var(--text);">общие параметры</b>.<br>Поля ниже показывают настройки приложения и заблокированы.</div>
+                <button type="button" class="btn accent small" style="width:100%;margin:0 0 8px;min-height:44px;" onclick="enablePersonalSettingsForThisWorkout()">✨ Настроить только эту тренировку</button>
+                <button type="button" class="btn ghost small" style="width:100%;margin:0;min-height:40px;" onclick="openGlobalWorkoutSettingsFromEditor()">⚙️ Изменить общие параметры</button>
+            </div>
+            <div id="workout-settings-personal-note"
+                 style="display:none;text-align:center;color:var(--muted);font-size:.78rem;line-height:1.4;padding:10px 12px;margin:0 0 10px;background:var(--primary-soft);border:1px solid rgba(167,139,250,0.25);border-radius:12px;">
+                Параметры <b style="color:var(--text);">только для этой тренировки</b>. Остальные используют общие настройки.
             </div>
 
             <div class="sound-section">
@@ -1500,19 +1505,19 @@ body.no-scroll [contenteditable="true"] {
                 </div>
             </div>
 
-            <div class="sound-section">
-                <div class="sound-section-title">После подхода</div>
+                        <div class="sound-section">
+                <div class="sound-section-title">Повторы и вес</div>
                 <div class="editor-settings-card" style="margin:0; box-shadow:none;">
-                    <div class="checkbox-row"><input type="checkbox" id="workout-ask-reps"><label for="workout-ask-reps">🔢 Спрашивать количество повторов</label></div>
-                    <div class="checkbox-row"><input type="checkbox" id="workout-ask-weight"><label for="workout-ask-weight">⚖️ Спрашивать вес</label></div>
-                    <div class="checkbox-row"><input type="checkbox" id="workout-show-last-exercise"><label for="workout-show-last-exercise">📊 «Прошлый раз» на экране подхода</label></div>
-                    <div class="checkbox-row"><input type="checkbox" id="workout-auto-fill-weight"><label for="workout-auto-fill-weight">🎯 Автоподстановка веса</label></div>
-                    <div class="checkbox-row"><input type="checkbox" id="workout-auto-fill-reps"><label for="workout-auto-fill-reps">🔢 Автоподстановка повторов</label></div>
-                    <div class="checkbox-row"><input type="checkbox" id="workout-track-prs"><label for="workout-track-prs">🏆 Личные рекорды (PR)</label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-ask-reps"><label for="workout-ask-reps">🔢 Спрашивать количество повторов<span class="hint">После подхода спросить, сколько повторов сделано</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-auto-fill-reps"><label for="workout-auto-fill-reps">🔢 Автоподстановка повторов<span class="hint">Подставить число с прошлого раза (например 22 вместо цели 18)</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-ask-weight"><label for="workout-ask-weight">⚖️ Спрашивать вес<span class="hint">После подхода спросить рабочий вес</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-auto-fill-weight"><label for="workout-auto-fill-weight">🎯 Автоподстановка веса<span class="hint">Подставить последний вес этого упражнения</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-show-last-exercise"><label for="workout-show-last-exercise">📊 «Прошлый раз» на экране подхода<span class="hint">Показать прошлые повторы и вес во время упражнения</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="workout-track-prs"><label for="workout-track-prs">🏆 Личные рекорды (PR)<span class="hint">Рекорды по повторам, весу и объёму на экране итогов</span></label></div>
                 </div>
             </div>
 
-            <button class="btn ghost small" onclick="resetWorkoutSettingsToGlobal()" style="width:100%; margin-top:4px;">↺ Сбросить к глобальным настройкам</button>
+            <button type="button" class="btn ghost small" id="editor-reset-to-global-btn" onclick="resetWorkoutSettingsToGlobal()" style="width:100%; margin-top:4px;">↺ Использовать общие параметры</button>
         </div>
     </details>
 
@@ -1767,41 +1772,41 @@ body.no-scroll [contenteditable="true"] {
     <details class="settings-group" open data-group="workout-preferences">
     <summary>🏋️ Настройки тренировок</summary>
     <div class="group-body">
-        <div class="sound-section">
-            <div class="sound-section-title">Приоритет настроек</div>
-            <div class="sound-options" id="workout-settings-priority-options">
-                <label class="sound-option" data-priority="global" onclick="setWorkoutSettingsPriority('global')">
-                    <span class="radio"></span>
-                    <span class="sound-info">
-                        <div class="sound-name" style="margin-bottom: 4px;">Общие настройки</div>
-                        <div class="sound-desc">Все тренировки используют параметры из раздела «Звук и голос» и «Таймеры»</div>
-                    </span>
-                </label>
-                <label class="sound-option" data-priority="workout" onclick="setWorkoutSettingsPriority('workout')">
-                    <span class="radio"></span>
-                    <span class="sound-info">
-                        <div class="sound-name" style="margin-bottom: 4px;">Настройки тренировки</div>
-                        <div class="sound-desc">Для каждой тренировки применяются её собственные параметры; незаданные берутся из общих</div>
-                    </span>
-                </label>
-            </div>
+        <div style="padding:10px 12px;background:var(--card-2);border:1px solid var(--border-soft);border-radius:12px;font-size:.82rem;line-height:1.45;color:var(--muted);">
+            По умолчанию все тренировки используют <b style="color:var(--text);">общие параметры</b> (звук, таймеры, повторы/вес).<br><br>
+            Если для одной тренировки нужны другие правила — откройте её в редакторе и нажмите <b style="color:var(--text);">«Настроить только эту тренировку»</b>. Остальные не изменятся.<br><br>
+            Быстрый старт всегда использует свои параметры отдельно.
         </div>
-        <div id="workout-settings-priority-hint" style="color:var(--muted);font-size:.8rem;line-height:1.45;padding:0 4px;">Быстрый старт работает независимо и на этот выбор не реагирует.</div>
     </div>
 </details>
     <details class="settings-group" open data-group="behavior">
         <summary>📱 Поведение</summary>
         <div class="group-body">
-            <div class="checkbox-row"><input type="checkbox" id="set-wakelock"><label for="set-wakelock">🔒 Не гасить экран</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-show-bottom-nav"><label for="set-show-bottom-nav">📱 Показывать нижнее меню</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-ask-reps"><label for="set-ask-reps">🔢 Спрашивать количество повторов</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-ask-weight"><label for="set-ask-weight">⚖️ Спрашивать вес после подхода</label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-show-last-exercise"><label for="set-show-last-exercise">📊 Показывать «Прошлый раз» на экране подхода<span class="hint">Последние повторы и вес этого упражнения из истории</span></label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-auto-fill-weight"><label for="set-auto-fill-weight">🎯 Автоподстановка веса<span class="hint">В диалоге веса подставляется последний вес упражнения</span></label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-track-prs"><label for="set-track-prs">🏆 Отслеживать личные рекорды (PR)<span class="hint">Новые максимумы по весу и объёму на экране итогов</span></label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-share-image-card"><label for="set-share-image-card">🖼️ Карточка при «Поделиться»<span class="hint">Делиться изображением результата, а не только текстом</span></label></div>
-            <div class="checkbox-row"><input type="checkbox" id="set-auto-fill-reps"><label for="set-auto-fill-reps">🔢 Автоподстановка повторов<span class="hint">В диалоге подставляется число повторов с прошлого раза (например 22 вместо цели 18)</span></label></div>
+            <div class="checkbox-row"><input type="checkbox" id="set-wakelock"><label for="set-wakelock">🔒 Не гасить экран<span class="hint">Экран не тухнет во время тренировки</span></label></div>
+            <div class="checkbox-row"><input type="checkbox" id="set-show-bottom-nav"><label for="set-show-bottom-nav">📱 Показывать нижнее меню<span class="hint">Панель навигации внизу экрана</span></label></div>
             <div id="vibration-warning" class="checkbox-row disabled" style="display:none;"><label>📳 Вибро не поддерживается</label></div>
+        </div>
+    </details>
+    <details class="settings-group" open data-group="strength">
+        <summary>🏋️ Повторы, вес и прогресс</summary>
+        <div class="group-body">
+            <div class="sound-section">
+                <div class="sound-section-title">Запрос после подхода</div>
+                <div class="editor-settings-card" style="margin:0; box-shadow:none;">
+                    <div class="checkbox-row"><input type="checkbox" id="set-ask-reps"><label for="set-ask-reps">🔢 Спрашивать количество повторов<span class="hint">После подхода спросить, сколько повторов сделано</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="set-auto-fill-reps"><label for="set-auto-fill-reps">🔢 Автоподстановка повторов<span class="hint">Подставить число с прошлого раза (например 22 вместо цели 18)</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="set-ask-weight"><label for="set-ask-weight">⚖️ Спрашивать вес после подхода<span class="hint">После подхода спросить рабочий вес</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="set-auto-fill-weight"><label for="set-auto-fill-weight">🎯 Автоподстановка веса<span class="hint">Подставить последний вес этого упражнения</span></label></div>
+                </div>
+            </div>
+            <div class="sound-section">
+                <div class="sound-section-title">История и рекорды</div>
+                <div class="editor-settings-card" style="margin:0; box-shadow:none;">
+                    <div class="checkbox-row"><input type="checkbox" id="set-show-last-exercise"><label for="set-show-last-exercise">📊 Показывать «Прошлый раз»<span class="hint">На экране подхода — прошлые повторы и вес из истории</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="set-track-prs"><label for="set-track-prs">🏆 Отслеживать личные рекорды (PR)<span class="hint">Рекорды по повторам, весу и объёму на экране итогов</span></label></div>
+                    <div class="checkbox-row"><input type="checkbox" id="set-share-image-card"><label for="set-share-image-card">🖼️ Карточка при «Поделиться»<span class="hint">Делиться изображением результата, а не только текстом</span></label></div>
+                </div>
+            </div>
         </div>
     </details>
     <details class="settings-group" open data-group="home">
@@ -2304,11 +2309,21 @@ function getActivityCacheKey() {
 function isVoiceMode() { return getEffectiveSetting('soundMode') === 'voice'; }
 function isBeepMode() { return getEffectiveSetting('soundMode') !== 'voice'; }
 function getAutoAdvanceDelay() { return isVoiceMode() ? 1500 : 900; }
+function workoutUsesPersonalSettings(w) {
+    if (!w) return false;
+    if (typeof w.usePersonalSettings === 'boolean') return !!w.usePersonalSettings;
+    // Совместимость: старый глобальный режим «настройки тренировки»
+    if (w.settings && typeof w.settings === 'object' && DB.settings && DB.settings.workoutSettingsPriority === 'workout') return true;
+    return false;
+}
 function getEffectiveSetting(key) {
-    // Приоритет «Общие настройки» полностью игнорирует персональные параметры тренировки.
-    if ((DB.settings.workoutSettingsPriority === 'workout' || (runState && runState.isTemp)) && runState && runState.workout && runState.workout.settings) {
-        const v = runState.workout.settings[key];
-        if (v !== undefined && v !== null) return v;
+    if (runState && runState.workout) {
+        const w = runState.workout;
+        const personal = !!runState.isTemp || workoutUsesPersonalSettings(w);
+        if (personal && w.settings && typeof w.settings === 'object') {
+            const v = w.settings[key];
+            if (v !== undefined && v !== null) return v;
+        }
     }
     return DB.settings[key];
 }
@@ -3150,7 +3165,7 @@ function estimateWorkoutDuration(w) {
     if (!w || !Array.isArray(w.exercises)) return 0;
     let total = 0;
     const exCount = w.exercises.filter(e => e && e.kind === 'exercise').length;
-    const useWorkoutSettings = DB.settings.workoutSettingsPriority === 'workout';
+    const useWorkoutSettings = workoutUsesPersonalSettings(w);
     const cdOn = (useWorkoutSettings && w.settings && w.settings.countdown !== undefined) ? w.settings.countdown : DB.settings.countdown;
     const cdDur = (useWorkoutSettings && w.settings && w.settings.countdownDuration) || DB.settings.countdownDuration || 3;
     if (cdOn) total += exCount * cdDur;
@@ -4577,6 +4592,7 @@ const REST_PRESETS = [
 ];
 
 let editingId = null, editingIsTemplate = false, editorExercises = [];
+let editorUsesPersonalSettings = false;
 let editingProgramId = null, editorProgram = null;
 let previewWorkoutId = null;
 let restAlarmTimeout = null, restVoiceTimeout = null;
@@ -5675,7 +5691,7 @@ async function deleteWorkoutById(id) {
 function openWorkoutsActions() {
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay action-menu-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(workoutsSelectionMode) exitWorkoutsBulkMode(); openEditor(null, false);">+ Создать тренировку</button><button class="btn ghost" onclick="closeTopSheet(); enterWorkoutsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderWorkoutsList(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.workouts.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllWorkouts();">Удалить все (${DB.workouts.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(workoutsSelectionMode) exitWorkoutsBulkMode(); openEditor(null, false);">+ Создать тренировку</button><button class="btn ghost" onclick="closeTopSheet(); enterWorkoutsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderWorkoutsList(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.workouts.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllWorkouts();">Удалить все (${DB.workouts.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button></div>`;
     decorateActionMenu(ov, 'Тренировки');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -5709,7 +5725,7 @@ function openTemplatesActions() {
     const userCount = DB.templates.length;
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay action-menu-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(templatesSelectionMode) exitTemplatesBulkMode(); openEditor(null, true);">+ Создать шаблон</button><button class="btn ghost" onclick="closeTopSheet(); enterTemplatesBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderTemplates(); showToast('↻ Обновлено');">↻ Обновить</button>${userCount > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllTemplates();">Удалить все мои шаблоны (${userCount})</button>` : ''}${hiddenCount > 0 ? `<button class="btn ghost" onclick="closeTopSheet(); restoreBuiltins();">🔄 Восстановить скрытые (${hiddenCount})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(templatesSelectionMode) exitTemplatesBulkMode(); openEditor(null, true);">+ Создать шаблон</button><button class="btn ghost" onclick="closeTopSheet(); enterTemplatesBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderTemplates(); showToast('↻ Обновлено');">↻ Обновить</button>${userCount > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllTemplates();">Удалить все мои шаблоны (${userCount})</button>` : ''}${hiddenCount > 0 ? `<button class="btn ghost" onclick="closeTopSheet(); restoreBuiltins();">🔄 Восстановить скрытые (${hiddenCount})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button></div>`;
     decorateActionMenu(ov, 'Шаблоны');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -5741,7 +5757,7 @@ async function deleteAllTemplates() {
 function openProgramsActions() {
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay action-menu-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(programsSelectionMode) exitProgramsBulkMode(); openProgramEditor(null);">+ Создать программу</button><button class="btn ghost" onclick="closeTopSheet(); enterProgramsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderPrograms(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.programs.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllPrograms();">Удалить все (${DB.programs.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(programsSelectionMode) exitProgramsBulkMode(); openProgramEditor(null);">+ Создать программу</button><button class="btn ghost" onclick="closeTopSheet(); enterProgramsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderPrograms(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.programs.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllPrograms();">Удалить все (${DB.programs.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button></div>`;
     decorateActionMenu(ov, 'Программы');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -5773,7 +5789,7 @@ async function deleteAllPrograms() {
 function openMeasurementsActions() {
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay action-menu-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(measurementsSelectionMode) exitMeasurementsBulkMode(); openMeasurementForm();">+ Добавить замер</button><button class="btn ghost" onclick="closeTopSheet(); enterMeasurementsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderMeasurements(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.measurements.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllMeasurements();">Удалить все (${DB.measurements.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn accent" onclick="closeTopSheet(); if(measurementsSelectionMode) exitMeasurementsBulkMode(); openMeasurementForm();">+ Добавить замер</button><button class="btn ghost" onclick="closeTopSheet(); enterMeasurementsBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderMeasurements(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.measurements.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); deleteAllMeasurements();">Удалить все (${DB.measurements.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button></div>`;
     decorateActionMenu(ov, 'Замеры');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -6279,26 +6295,30 @@ function bindEditorSettingToggles() {
     if (mbEl && !mbEl._bound) { mbEl._bound = true; mbEl.addEventListener('change', updateEditorSettingVisibility); }
 }
 function updateEditorWorkoutSettingsMode() {
-    const globalMode = DB.settings.workoutSettingsPriority !== 'workout';
+    const locked = !editorUsesPersonalSettings;
     const autoStartEl = document.getElementById('auto-start');
     if (autoStartEl) {
-        autoStartEl.disabled = globalMode;
-        // In global mode the checkbox reflects the application-wide value.
-        if (globalMode) autoStartEl.checked = !!DB.settings.defaultAutoStart;
+        autoStartEl.disabled = locked;
+        if (locked) autoStartEl.checked = !!DB.settings.defaultAutoStart;
     }
     const ids = ['workout-countdown','workout-countdown-duration','workout-minute-beep','workout-minute-beep-interval',
         'workout-sound-mode',
         'workout-announce-numbers','workout-announce-workout-name','workout-announce-exercise-name','workout-announce-exercise-goal','workout-announce-rest-name','workout-continuous-beep',
         'workout-ask-reps','workout-ask-weight','workout-show-last-exercise','workout-auto-fill-weight','workout-auto-fill-reps','workout-track-prs','workout-skip-warmup','workout-show-start-time'];
-    ids.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = globalMode; });
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = locked; });
     try { updateWorkoutAnnounceHint(); } catch(e) {}
     const note = document.getElementById('workout-settings-global-note');
-    if (note) note.style.display = globalMode ? 'block' : 'none';
-    const card = document.querySelector('#editor-settings-group .editor-settings-card');
-    if (card) card.classList.toggle('workout-settings-global-mode', globalMode);
+    if (note) note.style.display = locked ? 'block' : 'none';
+    const pnote = document.getElementById('workout-settings-personal-note');
+    if (pnote) pnote.style.display = locked ? 'none' : 'block';
+    const resetBtn = document.getElementById('editor-reset-to-global-btn');
+    if (resetBtn) resetBtn.style.display = locked ? 'none' : '';
+    document.querySelectorAll('#editor-settings-group .editor-settings-card').forEach(card => {
+        card.classList.toggle('workout-settings-global-mode', locked);
+    });
 }
 function initWorkoutSettingsFields(w) {
-    const ws = (DB.settings.workoutSettingsPriority === 'workout' && w && w.settings) || {};
+    const ws = (w && workoutUsesPersonalSettings(w) && w.settings) ? w.settings : {};
     const countdown = ws.countdown !== undefined ? ws.countdown : DB.settings.countdown;
     const countdownDur = ws.countdownDuration !== undefined ? ws.countdownDuration : DB.settings.countdownDuration;
     const minuteBeep = ws.minuteBeep !== undefined ? ws.minuteBeep : DB.settings.minuteBeep;
@@ -6358,9 +6378,17 @@ function initEditorSettingsAccordion() {
     if (group.dataset.accBound !== '1') { group.dataset.accBound = '1'; group.addEventListener('toggle', () => { DB.settings.accordions = DB.settings.accordions || {}; DB.settings.accordions.editorSettings = group.open; Storage.set('ft_settings', DB.settings); }); }
 }
 async function resetWorkoutSettingsToGlobal() {
-    if (!await customConfirm('Сбросить настройки тренировки к глобальным?', { danger: false, okText: '↺ Сбросить' })) return;
+    const ok = await customConfirm('Убрать персональные параметры этой тренировки и снова использовать общие настройки приложения?', {
+        title: 'Общие параметры',
+        okText: 'Использовать общие',
+        cancelText: 'Отмена',
+        danger: false
+    });
+    if (!ok) return;
+    editorUsesPersonalSettings = false;
     initWorkoutSettingsFields(null);
-    showToast('↺ Сброшено к глобальным');
+    updateEditorWorkoutSettingsMode();
+    showToast('✓ Общие параметры');
 }
 function openEditor(id, isTemplate) {
     editingId = id; editingIsTemplate = isTemplate;
@@ -6369,6 +6397,7 @@ function openEditor(id, isTemplate) {
     if (id === null) {
         editorExercises = [];
         document.getElementById('workout-name').value = '';
+        editorUsesPersonalSettings = false;
         document.getElementById('auto-start').checked = DB.settings.defaultAutoStart;
         document.getElementById('editor-title').innerText = isTemplate ? 'Новый шаблон' : 'Новая тренировка';
         document.getElementById('delete-btn').style.display = 'none';
@@ -6385,13 +6414,17 @@ function openEditor(id, isTemplate) {
             if (ex.kind === 'exercise' && ex.type === 'timer' && ex.timerDuration !== null && ex.timerDuration !== undefined && !REST_PRESETS.some(p => p.v === ex.timerDuration)) ex.customTimerDuration = true;
         });
         document.getElementById('workout-name').value = w.name;
-        document.getElementById('auto-start').checked = DB.settings.workoutSettingsPriority === 'workout' ? (w.autoStart !== undefined ? !!w.autoStart : !!DB.settings.defaultAutoStart) : !!DB.settings.defaultAutoStart;
+        editorUsesPersonalSettings = workoutUsesPersonalSettings(w);
+        document.getElementById('auto-start').checked = editorUsesPersonalSettings
+            ? (w.autoStart !== undefined ? !!w.autoStart : !!DB.settings.defaultAutoStart)
+            : !!DB.settings.defaultAutoStart;
         document.getElementById('editor-title').innerText = isTemplate ? 'Редактирование шаблона' : 'Редактирование';
         document.getElementById('delete-btn').style.display = 'block';
         document.getElementById('export-btn').style.display = 'block';
     }
     renderEditorExercises();
     initWorkoutSettingsFields(id === null ? null : (editingIsTemplate ? DB.templates.find(x => x.id === id) : DB.workouts.find(x => x.id === id)));
+    updateEditorWorkoutSettingsMode();
     showScreen('screen-editor');
 }
 function cancelEditor() { showScreen(editingIsTemplate ? 'screen-templates' : 'screen-workouts'); }
@@ -6561,41 +6594,44 @@ async function saveWorkout() {
         const existingForAutoStart = editingId !== null
             ? (editingIsTemplate ? DB.templates : DB.workouts).find(x => x.id === editingId)
             : null;
-        const autoStart = DB.settings.workoutSettingsPriority === 'workout'
-            ? !!document.getElementById('auto-start').checked
-            : (existingForAutoStart && typeof existingForAutoStart.autoStart === 'boolean'
-                ? existingForAutoStart.autoStart
-                : !!DB.settings.defaultAutoStart);
-        const settings = DB.settings.workoutSettingsPriority === 'workout' ? {
-            countdown: document.getElementById('workout-countdown').checked,
-            countdownDuration: parseInt(document.getElementById('workout-countdown-duration').value) || 3,
-            minuteBeep: document.getElementById('workout-minute-beep').checked,
-            minuteBeepInterval: parseInt(document.getElementById('workout-minute-beep-interval').value) || 60,
-            soundMode: (document.getElementById('workout-sound-mode') && document.getElementById('workout-sound-mode').value === 'voice') ? 'voice' : 'beep',
-            announceNumbers: document.getElementById('workout-announce-numbers').checked,
-            announceWorkoutName: document.getElementById('workout-announce-workout-name').checked,
-            announceExerciseName: document.getElementById('workout-announce-exercise-name') ? document.getElementById('workout-announce-exercise-name').checked : true,
-            announceExerciseGoal: document.getElementById('workout-announce-exercise-goal') ? document.getElementById('workout-announce-exercise-goal').checked : true,
-            announceRestName: document.getElementById('workout-announce-rest-name') ? document.getElementById('workout-announce-rest-name').checked : true,
-            continuousBeep: document.getElementById('workout-continuous-beep').checked,
-            askReps: document.getElementById('workout-ask-reps').checked,
-            askWeight: document.getElementById('workout-ask-weight') ? document.getElementById('workout-ask-weight').checked : false,
-            showLastExercise: document.getElementById('workout-show-last-exercise') ? document.getElementById('workout-show-last-exercise').checked : (DB.settings.showLastExercise !== false),
-            autoFillWeight: document.getElementById('workout-auto-fill-weight') ? document.getElementById('workout-auto-fill-weight').checked : (DB.settings.autoFillWeight !== false),
-            autoFillReps: document.getElementById('workout-auto-fill-reps') ? document.getElementById('workout-auto-fill-reps').checked : (DB.settings.autoFillReps !== false),
-            trackPRs: document.getElementById('workout-track-prs') ? document.getElementById('workout-track-prs').checked : (DB.settings.trackPRs !== false),
-            skipWarmup: document.getElementById('workout-skip-warmup').checked,
-            showStartTime: document.getElementById('workout-show-start-time') ? document.getElementById('workout-show-start-time').checked : !!DB.settings.showStartTime
-        } : ((editingId !== null ? ((editingIsTemplate ? DB.templates : DB.workouts).find(x => x.id === editingId)?.settings) : null) || {});
-        const data = { name, autoStart, exercises: editorExercises, settings };
+        let autoStart = !!DB.settings.defaultAutoStart;
+        let settings = {};
+        if (editorUsesPersonalSettings) {
+            autoStart = !!document.getElementById('auto-start').checked;
+            settings = {
+                countdown: document.getElementById('workout-countdown').checked,
+                countdownDuration: parseInt(document.getElementById('workout-countdown-duration').value) || 3,
+                minuteBeep: document.getElementById('workout-minute-beep').checked,
+                minuteBeepInterval: parseInt(document.getElementById('workout-minute-beep-interval').value) || 60,
+                soundMode: (document.getElementById('workout-sound-mode') && document.getElementById('workout-sound-mode').value === 'voice') ? 'voice' : 'beep',
+                announceNumbers: document.getElementById('workout-announce-numbers').checked,
+                announceWorkoutName: document.getElementById('workout-announce-workout-name').checked,
+                announceExerciseName: document.getElementById('workout-announce-exercise-name') ? document.getElementById('workout-announce-exercise-name').checked : true,
+                announceExerciseGoal: document.getElementById('workout-announce-exercise-goal') ? document.getElementById('workout-announce-exercise-goal').checked : true,
+                announceRestName: document.getElementById('workout-announce-rest-name') ? document.getElementById('workout-announce-rest-name').checked : true,
+                continuousBeep: document.getElementById('workout-continuous-beep').checked,
+                askReps: document.getElementById('workout-ask-reps').checked,
+                askWeight: document.getElementById('workout-ask-weight') ? document.getElementById('workout-ask-weight').checked : false,
+                showLastExercise: document.getElementById('workout-show-last-exercise') ? document.getElementById('workout-show-last-exercise').checked : (DB.settings.showLastExercise !== false),
+                autoFillWeight: document.getElementById('workout-auto-fill-weight') ? document.getElementById('workout-auto-fill-weight').checked : (DB.settings.autoFillWeight !== false),
+                autoFillReps: document.getElementById('workout-auto-fill-reps') ? document.getElementById('workout-auto-fill-reps').checked : (DB.settings.autoFillReps !== false),
+                trackPRs: document.getElementById('workout-track-prs') ? document.getElementById('workout-track-prs').checked : (DB.settings.trackPRs !== false),
+                skipWarmup: document.getElementById('workout-skip-warmup').checked,
+                showStartTime: document.getElementById('workout-show-start-time') ? document.getElementById('workout-show-start-time').checked : !!DB.settings.showStartTime
+            };
+        }
+        const data = { name, autoStart, exercises: editorExercises, usePersonalSettings: !!editorUsesPersonalSettings, settings };
+        const wasNew = editingId === null;
         if (editingIsTemplate) {
             if (editingId === null) DB.templates.push({ id: Date.now(), ...data });
             else Object.assign(DB.templates.find(x => x.id === editingId), data);
             saveDB('templates'); showScreen('screen-templates');
+            notifySaved(wasNew ? '✅ Шаблон создан' : '✅ Шаблон сохранён');
         } else {
             if (editingId === null) DB.workouts.push({ id: Date.now(), ...data });
             else Object.assign(DB.workouts.find(x => x.id === editingId), data);
             saveDB('workouts'); showScreen('screen-workouts');
+            notifySaved(wasNew ? '✅ Тренировка создана' : '✅ Тренировка сохранена');
         }
     } finally { saveWorkoutInProgress = false; }
 }
@@ -6798,8 +6834,8 @@ async function startWorkout(id, isDeload) {
         // Resolve auto-start once at launch: global priority uses the app setting,
         // per-workout priority uses the saved workout value. Never mutate DB.workouts.
         let workoutForRun = JSON.parse(JSON.stringify(w));
-        workoutForRun.autoStart = DB.settings.workoutSettingsPriority === 'workout'
-            ? (typeof w.autoStart === 'boolean' ? w.autoStart : !!DB.settings.defaultAutoStart)
+        workoutForRun.autoStart = workoutUsesPersonalSettings(workoutForRun)
+            ? (workoutForRun.autoStart !== undefined ? !!workoutForRun.autoStart : !!DB.settings.defaultAutoStart)
             : !!DB.settings.defaultAutoStart;
         let deloadPercent = isDeload ? 35 : 0;
         if (isDeload) {
@@ -8261,7 +8297,7 @@ function openQuickTimerSheet() {
             </div>
         </div>
         <button class="btn accent" onclick="startCustomQuickTimer()">▶ Старт</button>
-        <button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button>
+        <button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button>
     </div>`;
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -8548,7 +8584,7 @@ function getFilteredHistory() {
 function openHistoryActions() {
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay action-menu-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn ghost" onclick="closeTopSheet(); enterHistoryBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderHistory(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.history.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); clearHistory();">Удалить всю историю (${DB.history.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">Действия</h2><button class="btn ghost" onclick="closeTopSheet(); enterHistoryBulkMode();">Выбрать</button><button class="btn ghost" onclick="closeTopSheet(); renderHistory(); showToast('↻ Обновлено');">↻ Обновить</button>${DB.history.length > 0 ? `<button class="btn danger" onclick="closeTopSheet(); clearHistory();">Удалить всю историю (${DB.history.length})</button>` : ''}<button class="btn sheet-btn-cancel" onclick="closeTopSheetCancel()">Отмена</button></div>`;
     decorateActionMenu(ov, 'История');
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
@@ -9078,22 +9114,54 @@ function filterSettings(q) {
         if (any) group.open = true;
     });
 }
-function setWorkoutSettingsPriority(mode) {
+function setWorkoutSettingsPriority(mode, opts) {
     if (mode !== 'global' && mode !== 'workout') return;
     DB.settings.workoutSettingsPriority = mode;
-    saveDB('settings');
-    renderWorkoutSettingsPriority();
-    showToast(mode === 'global' ? 'Приоритет: общие настройки' : 'Приоритет: настройки тренировки');
+    try { saveDB('settings'); } catch(e) {}
 }
-function renderWorkoutSettingsPriority() {
-    const mode = DB.settings.workoutSettingsPriority === 'workout' ? 'workout' : 'global';
-    document.querySelectorAll('#workout-settings-priority-options [data-priority]').forEach(el => {
-        const selected = el.dataset.priority === mode;
-        el.classList.toggle('selected', selected);
-        const radio = el.querySelector('.radio');
-        if (radio) radio.setAttribute('aria-checked', selected ? 'true' : 'false');
-    });
+async function enablePersonalSettingsForThisWorkout() {
+    const choice = await customConfirm(
+        'Сейчас у этой тренировки общие параметры.\n\nНастроить отдельно только её? Остальные тренировки не изменятся.\n\nЕсли нужно поменять правила для всех — выберите «Общие параметры».',
+        {
+            title: 'Параметры тренировки',
+            okText: 'Только эту тренировку',
+            cancelText: 'Общие параметры',
+            danger: false
+        }
+    );
+    if (choice === true) {
+        editorUsesPersonalSettings = true;
+        updateEditorWorkoutSettingsMode();
+        showToast('✅ Параметры только для этой тренировки');
+        return;
+    }
+    if (choice === false) {
+        openGlobalWorkoutSettingsFromEditor();
+    }
 }
+function openGlobalWorkoutSettingsFromEditor() {
+    try { settingsReturnScreen = 'screen-editor'; } catch(e) {}
+    showScreen('screen-settings');
+    setTimeout(() => {
+        try {
+            const g = document.querySelector('#screen-settings details[data-group="strength"]')
+                || document.querySelector('#screen-settings details[data-group="workout-preferences"]')
+                || document.querySelector('#screen-settings details[data-group="timers"]');
+            if (g) { g.open = true; g.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        } catch(e) {}
+    }, 120);
+}
+function notifySaved(msg) {
+    showToast(msg || '✅ Сохранено');
+}
+function notifyCancelled(msg) {
+    showToast(msg || 'Отменено');
+}
+function closeTopSheetCancel() {
+    closeTopSheet();
+    notifyCancelled();
+}
+function renderWorkoutSettingsPriority() { /* персональность на уровне тренировки */ }
 function renderSettings() {
     renderWorkoutSettingsPriority();
     document.getElementById('set-wakelock').checked = DB.settings.wakeLock;
