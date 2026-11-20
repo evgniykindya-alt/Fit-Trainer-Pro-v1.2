@@ -5569,7 +5569,7 @@ function openMeasurementForm(editId) {
     const ov = document.createElement('div');
     ov.className = 'notif-side-overlay';
     ov.id = 'measurement-form-overlay';
-    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${existing ? 'Редактировать замер' : 'Новый замер'}</h2><div style="flex: 1; overflow-y: auto;"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Дата</label><input type="date" id="m-date" class="input" value="${dateStr}"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Вес (кг)</label><input type="number" id="m-weight" class="input" step="0.1" min="0" max="500" placeholder="Например: 72.5" value="${wVal}"><div class="form-row"><div class="form-col"><label>Грудь (см)</label><input type="number" id="m-chest" class="input" step="0.5" min="0" max="300" placeholder="—" value="${cVal}"></div><div class="form-col"><label>Талия (см)</label><input type="number" id="m-waist" class="input" step="0.5" min="0" max="300" placeholder="—" value="${waVal}"></div></div><div class="form-row"><div class="form-col"><label>Бёдра (см)</label><input type="number" id="m-hips" class="input" step="0.5" min="0" max="300" placeholder="—" value="${hVal}"></div></div><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Заметка</label><textarea id="m-notes" class="input" placeholder="Как самочувствие?" style="min-height:60px;">${nVal}</textarea></div><button class="btn accent" onclick="saveMeasurement()">💾 Сохранить</button><button class="btn ghost" onclick="closeMeasurementForm()">Отмена</button></div>`;
+    ov.innerHTML = `<div class="notif-side-sheet"><div class="notif-side-grabber"><div class="notif-side-grabber-bar"></div></div><h2 class="sheet-title">${existing ? 'Редактировать замер' : 'Новый замер'}</h2><div style="flex: 1; overflow-y: auto;"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Дата</label><input type="date" id="m-date" class="input" value="${dateStr}"><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Вес (кг)</label><input type="number" id="m-weight" class="input" step="0.1" min="0" max="500" placeholder="Например: 72.5" value="${wVal}"><div class="form-row"><div class="form-col"><label>Грудь (см)</label><input type="number" id="m-chest" class="input" step="0.5" min="0" max="300" placeholder="—" value="${cVal}"></div><div class="form-col"><label>Талия (см)</label><input type="number" id="m-waist" class="input" step="0.5" min="0" max="300" placeholder="—" value="${waVal}"></div></div><div class="form-row"><div class="form-col"><label>Бёдра (см)</label><input type="number" id="m-hips" class="input" step="0.5" min="0" max="300" placeholder="—" value="${hVal}"></div></div><label style="color:var(--muted); font-size:0.8rem; display:block; margin-bottom:4px;">Заметка</label><textarea id="m-notes" class="input" placeholder="Как самочувствие?" style="min-height:60px;">${nVal}</textarea></div><button class="btn accent" onclick="saveMeasurement()">💾 Сохранить</button><button class="btn ghost" onclick="closeMeasurementForm(); notifyCancelled();">Отмена</button></div>`;
     document.body.appendChild(ov);
     setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', (e) => { if (e.target === ov) closeMeasurementForm(); });
@@ -6000,7 +6000,7 @@ function openProgramEditor(id) {
     renderProgramWeeksList();
     showScreen('screen-program-editor');
 }
-function cancelProgramEditor() { showScreen('screen-programs'); }
+function cancelProgramEditor() { showScreen('screen-programs'); notifyCancelled(); }
 function renderProgramWeeksList() {
     const c = document.getElementById('program-weeks-list');
     if (!c) return;
@@ -6126,10 +6126,12 @@ function saveProgram() {
     const name = document.getElementById('program-name').value.trim();
     if (!name) { showToast('Введи название'); return; }
     editorProgram.weeks.sort((a, b) => a.startDate.localeCompare(b.startDate));
-    if (editingProgramId === null) DB.programs.push({ id: Date.now(), name, weeks: editorProgram.weeks });
+    const wasNew = editingProgramId === null;
+    if (wasNew) DB.programs.push({ id: Date.now(), name, weeks: editorProgram.weeks });
     else { const p = DB.programs.find(x => x.id === editingProgramId); if (p) Object.assign(p, { name, weeks: editorProgram.weeks }); }
     saveDB('programs');
     showScreen('screen-programs');
+    notifySaved(wasNew ? '✅ Программа создана' : '✅ Программа сохранена');
 }
 async function deleteProgram() {
     if (!await customConfirm('Удалить программу?\n\nИстория выполнения по ней тоже пропадёт.', { danger: true, okText: '🗑 Удалить' })) return;
@@ -6427,7 +6429,7 @@ function openEditor(id, isTemplate) {
     updateEditorWorkoutSettingsMode();
     showScreen('screen-editor');
 }
-function cancelEditor() { showScreen(editingIsTemplate ? 'screen-templates' : 'screen-workouts'); }
+function cancelEditor() { showScreen(editingIsTemplate ? 'screen-templates' : 'screen-workouts'); notifyCancelled(); }
 function updateCollapseAllBtn() {
     const btn = document.getElementById('collapse-all-btn');
     if (!btn) return;
@@ -6662,6 +6664,7 @@ function exportCurrentWorkout() {
     a.download = `fit-trainer-${w.name.replace(/[^a-zа-яё0-9]/gi, '_')}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    notifySaved('✅ Файл экспортирован');
 }
 function importWorkout(event) {
     const file = event.target.files[0]; if (!file) return;
@@ -8083,7 +8086,7 @@ function openQuickStartSettingsSheet() {
     if (hasOpenOverlay()) return;
     const ov = document.createElement('div'); ov.className = 'notif-side-overlay'; ov.id = 'quick-start-settings-overlay';
     ov.classList.add('quick-start-settings-overlay');
-    ov.innerHTML = '<div class="notif-side-sheet quick-start-settings-sheet" role="dialog" aria-modal="true" aria-label="Настройки быстрого старта"><div id="quick-start-settings-content"></div><button class="btn sheet-btn-cancel" onclick="closeTopSheet()">Готово</button></div>';
+    ov.innerHTML = '<div class="notif-side-sheet quick-start-settings-sheet" role="dialog" aria-modal="true" aria-label="Настройки быстрого старта"><div id="quick-start-settings-content"></div><button class="btn sheet-btn-cancel" onclick="closeTopSheet(); notifySaved('✅ Настройки быстрого старта');">Готово</button></div>';
     document.body.appendChild(ov); setupSideSwipe(ov.querySelector('.notif-side-sheet'), ov);
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
     renderQuickStartSettingsSheet();
