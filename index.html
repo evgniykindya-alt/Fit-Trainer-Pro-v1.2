@@ -9120,9 +9120,27 @@ function renderHistoryPrograms() {
 function shareResult(id) {
     const r = DB.history.find(x => x.id === id);
     if (!r) return;
-    let text = `💪 Тренировка: ${r.workoutName}\n📅 ${formatDate(new Date(r.startTime))}\n⏱ ${formatTime(r.totalDuration)}\n💪 ${formatTime(r.workTime)}`;
-    if ((r.warmupSeconds || 0) > 0) text += `\n🔥 Разминка: ${formatTime(r.warmupSeconds)}`;
-    if (r.isDeload) text += `\n🏷 Разгрузочная`;
+    const startT = new Date(r.startTime);
+    const endT = r.endTime ? new Date(r.endTime) : new Date(startT.getTime() + (r.totalDuration || 0) * 1000);
+    let text = `💪 ${r.workoutName || 'Тренировка'}`;
+    if (r.isDeload) text += ` (разгрузочная)`;
+    text += `\n🕐 ${formatClock(startT)} → ${formatClock(endT)}`;
+    text += `\n⏱ ${formatTime(r.totalDuration || 0)} · 💪 ${formatTime(r.workTime || 0)}`;
+    if ((r.warmupSeconds || 0) > 0) text += ` · 🔥 ${formatTime(r.warmupSeconds)}`;
+    const exNames = r.exerciseNames || [];
+    const exTimes = r.exerciseTimes || [];
+    const setResults = r.setResults || {};
+    const origIdxs = (typeof getExerciseOriginalIndices === 'function') ? getExerciseOriginalIndices(r) : exNames.map((_, i) => i);
+    if (exNames.length) {
+        text += `\n\nУпражнения:`;
+        exNames.forEach((name, i) => {
+            const t = exTimes[i];
+            const isSkipped = t !== undefined && t !== null && t < 0;
+            const sets = setResults[origIdxs[i] !== undefined ? origIdxs[i] : i];
+            const setsStr = Array.isArray(sets) && sets.length ? ` (${sets.join('/')})` : '';
+            text += `\n${i + 1}. ${name || 'Упражнение'}${setsStr} — ${isSkipped ? '⏭' : formatTime(t || 0)}`;
+        });
+    }
     text += `\n\n#FitTrainer`;
     if (DB.settings.shareImageCard !== false) {
         try { shareResultImage(r, text); return; } catch (e) { console.error('[share-image]', e); }
@@ -9132,78 +9150,195 @@ function shareResult(id) {
     else showShareFallback(text);
 }
 async function shareResultImage(r, textFallback) {
-    const W = 1080, H = 1350;
+    const W = 1080;
+    const pad = 64;
+    const innerPad = 48;
+    const isLight = document.body.classList.contains('light');
+    const startT = new Date(r.startTime);
+    const endT = r.endTime ? new Date(r.endTime) : new Date(startT.getTime() + (r.totalDuration || 0) * 1000);
+    const exNames = r.exerciseNames || [];
+    const exTimes = r.exerciseTimes || [];
+    const setResults = r.setResults || {};
+    const origIdxs = (typeof getExerciseOriginalIndices === 'function') ? getExerciseOriginalIndices(r) : exNames.map((_, i) => i);
+    const warmupSeconds = r.warmupSeconds || 0;
+
+    // Оценка высоты под контент
+    const titleLinesEst = Math.max(1, Math.ceil(String(r.workoutName || 'Тренировка').length / 18));
+    const exRows = exNames.length + (warmupSeconds > 0 ? 1 : 0);
+    const H = Math.min(2800, Math.max(1400, 520 + titleLinesEst * 70 + 280 + exRows * 78 + 120));
+
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
-    const isLight = document.body.classList.contains('light');
+
+    const roundRect = (x, y, w, h, rad) => {
+        const rr = Math.min(rad, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+    };
+    const fillTextEllipsis = (text, x, y, maxW) => {
+        let t = String(text || '');
+        if (ctx.measureText(t).width <= maxW) { ctx.fillText(t, x, y); return; }
+        while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+        ctx.fillText(t + '…', x, y);
+    };
+
+    // Фон
     const grd = ctx.createLinearGradient(0, 0, W, H);
     if (isLight) { grd.addColorStop(0, '#f3f3f9'); grd.addColorStop(1, '#e8e6f5'); }
     else { grd.addColorStop(0, '#12121a'); grd.addColorStop(0.5, '#1a1530'); grd.addColorStop(1, '#0a0a10'); }
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(167,139,250,0.18)';
-    ctx.beginPath(); ctx.arc(W * 0.85, 120, 220, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(52,211,153,0.12)';
-    ctx.beginPath(); ctx.arc(120, H - 180, 260, 0, Math.PI * 2); ctx.fill();
-    const pad = 64;
-    const cardX = pad, cardY = pad, cardW = W - pad * 2, cardH = H - pad * 2, rr = 48;
-    ctx.beginPath();
-    ctx.moveTo(cardX + rr, cardY);
-    ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + cardH, rr);
-    ctx.arcTo(cardX + cardW, cardY + cardH, cardX, cardY + cardH, rr);
-    ctx.arcTo(cardX, cardY + cardH, cardX, cardY, rr);
-    ctx.arcTo(cardX, cardY, cardX + cardW, cardY, rr);
-    ctx.closePath();
-    ctx.fillStyle = isLight ? 'rgba(255,255,255,0.92)' : 'rgba(22,22,30,0.88)';
+    ctx.fillStyle = 'rgba(167,139,250,0.16)';
+    ctx.beginPath(); ctx.arc(W * 0.88, 140, 240, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(52,211,153,0.10)';
+    ctx.beginPath(); ctx.arc(100, H - 160, 260, 0, Math.PI * 2); ctx.fill();
+
+    // Карточка
+    const cardX = pad, cardY = pad, cardW = W - pad * 2, cardH = H - pad * 2;
+    roundRect(cardX, cardY, cardW, cardH, 48);
+    ctx.fillStyle = isLight ? 'rgba(255,255,255,0.94)' : 'rgba(22,22,30,0.90)';
     ctx.fill();
-    ctx.fillStyle = isLight ? '#1c1c22' : '#f0f0f5';
-    ctx.font = '700 42px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('Fit Trainer Pro', pad + 56, pad + 90);
+
+    const contentX = cardX + innerPad;
+    const contentW = cardW - innerPad * 2;
+    let y = cardY + 56;
+
+    // Заголовок приложения
+    ctx.fillStyle = isLight ? '#8a8a95' : '#8a8a9c';
+    ctx.font = '600 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText('Fit Trainer Pro', contentX, y);
+    y += 70;
+
+    // Название тренировки
     ctx.fillStyle = '#a78bfa';
-    ctx.font = '800 56px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.font = '800 54px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
     const title = String(r.workoutName || 'Тренировка');
-    const maxTitleW = W - pad * 2 - 112;
-    // simple title wrap
-    const words = title.split(' ');
-    let line = '', yy = pad + 180;
+    const words = title.split(/\s+/);
+    let line = '';
     for (let n = 0; n < words.length; n++) {
-        const test = line + words[n] + ' ';
-        if (ctx.measureText(test).width > maxTitleW && n > 0) {
-            ctx.fillText(line.trim(), pad + 56, yy);
-            line = words[n] + ' ';
-            yy += 66;
+        const test = (line ? line + ' ' : '') + words[n];
+        if (ctx.measureText(test).width > contentW && line) {
+            ctx.fillText(line, contentX, y);
+            y += 64;
+            line = words[n];
         } else line = test;
     }
-    ctx.fillText(line.trim(), pad + 56, yy);
+    if (line) { ctx.fillText(line, contentX, y); y += 64; }
+    if (r.isDeload) {
+        y += 8;
+        ctx.fillStyle = isLight ? '#bd790d' : '#ffc66e';
+        ctx.font = '700 28px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('🏷 Разгрузочная', contentX, y);
+        y += 40;
+    }
+    y += 28;
+
+    // Блок статистики
+    const statsBoxH = 210;
+    roundRect(contentX, y, contentW, statsBoxH, 28);
+    ctx.fillStyle = isLight ? 'rgba(124,77,255,0.07)' : 'rgba(167,139,250,0.10)';
+    ctx.fill();
+
+    ctx.fillStyle = isLight ? '#8a8a95' : '#8a8a9c';
+    ctx.font = '700 24px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('СТАТИСТИКА', contentX + contentW / 2, y + 40);
+
     const stats = [
-        ['📅', formatDate(new Date(r.startTime))],
-        ['⏱', formatTime(r.totalDuration || 0)],
-        ['💪', formatTime(r.workTime || 0)]
+        { icon: '🕐', label: 'НАЧАЛО', value: formatClock(startT), color: isLight ? '#079d78' : '#38e0aa' },
+        { icon: '🏁', label: 'КОНЕЦ', value: formatClock(endT), color: isLight ? '#079d78' : '#38e0aa' },
+        { icon: '⏱', label: 'ДЛИТ.', value: formatTime(r.totalDuration || 0), color: isLight ? '#079d78' : '#38e0aa' },
+        { icon: '💪', label: 'РАБОТА', value: formatTime(r.workTime || 0), color: isLight ? '#079d78' : '#38e0aa' },
+        { icon: '🔥', label: 'РАЗМИНКА', value: formatTime(warmupSeconds), color: isLight ? '#bd790d' : '#ffc66e' }
     ];
-    if ((r.warmupSeconds || 0) > 0) stats.push(['🔥', formatTime(r.warmupSeconds)]);
-    let y = Math.max(yy + 80, pad + 360);
-    stats.forEach(([icon, val]) => {
-        const bx = pad + 56, by = y, bw = W - pad * 2 - 112, bh = 100, br = 24;
-        ctx.beginPath();
-        ctx.moveTo(bx + br, by);
-        ctx.arcTo(bx + bw, by, bx + bw, by + bh, br);
-        ctx.arcTo(bx + bw, by + bh, bx, by + bh, br);
-        ctx.arcTo(bx, by + bh, bx, by, br);
-        ctx.arcTo(bx, by, bx + bw, by, br);
-        ctx.closePath();
-        ctx.fillStyle = isLight ? 'rgba(124,77,255,0.08)' : 'rgba(167,139,250,0.12)';
-        ctx.fill();
-        ctx.font = '48px sans-serif';
-        ctx.fillStyle = isLight ? '#1c1c22' : '#f0f0f5';
-        ctx.fillText(icon, bx + 28, by + 66);
-        ctx.font = '700 44px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-        ctx.fillText(val, bx + 100, by + 66);
-        y += 120;
+    const colW = contentW / 3;
+    stats.slice(0, 3).forEach((s, i) => {
+        const cx = contentX + colW * i + colW / 2;
+        ctx.fillStyle = s.color;
+        ctx.font = '800 36px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(s.value, cx, y + 100);
+        ctx.fillStyle = isLight ? '#8a8a95' : '#8a8a9c';
+        ctx.font = '600 20px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(`${s.icon} ${s.label}`, cx, y + 130);
     });
+    const row2Y = y + 175;
+    stats.slice(3).forEach((s, i) => {
+        const cx = contentX + contentW * (i === 0 ? 0.33 : 0.67);
+        ctx.fillStyle = s.color;
+        ctx.font = '800 36px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(s.value, cx, row2Y);
+        ctx.fillStyle = isLight ? '#8a8a95' : '#8a8a9c';
+        ctx.font = '600 20px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(`${s.icon} ${s.label}`, cx, row2Y + 30);
+    });
+    ctx.textAlign = 'left';
+    y += statsBoxH + 36;
+
+    // Упражнения
+    if (exNames.length > 0 || warmupSeconds > 0) {
+        ctx.fillStyle = isLight ? '#8a8a95' : '#8a8a9c';
+        ctx.font = '700 24px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('УПРАЖНЕНИЯ', contentX, y);
+        y += 28;
+
+        if (warmupSeconds > 0) {
+            ctx.fillStyle = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+            ctx.fillRect(contentX, y, contentW, 1);
+            y += 42;
+            ctx.fillStyle = isLight ? '#bd790d' : '#ffc66e';
+            ctx.font = '600 32px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            ctx.fillText('🔥 Разминка', contentX, y);
+            ctx.textAlign = 'right';
+            ctx.font = '700 32px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            ctx.fillText(formatTime(warmupSeconds), contentX + contentW, y);
+            ctx.textAlign = 'left';
+            y += 28;
+        }
+
+        exNames.forEach((name, i) => {
+            const t = exTimes[i];
+            const origIdx = origIdxs[i] !== undefined ? origIdxs[i] : i;
+            const sets = setResults[origIdx];
+            const isSkipped = t !== undefined && t !== null && t < 0;
+            const hasSets = Array.isArray(sets) && sets.length;
+            const timeStr = isSkipped ? '⏭' : formatTime(t || 0);
+            const timeColor = isSkipped ? (isLight ? '#8a8a95' : '#6c6c80') : (isLight ? '#079d78' : '#38e0aa');
+
+            ctx.fillStyle = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+            ctx.fillRect(contentX, y, contentW, 1);
+            y += 42;
+
+            const nameStr = `${i + 1}. ${name || 'Упражнение'}`;
+            ctx.fillStyle = isLight ? '#5a5a6a' : '#c8c8d4';
+            ctx.font = '500 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            const rightReserve = hasSets ? 280 : 140;
+            fillTextEllipsis(nameStr, contentX, y, contentW - rightReserve);
+
+            ctx.textAlign = 'right';
+            if (hasSets) {
+                ctx.fillStyle = isLight ? '#286fc0' : '#75b8ff';
+                ctx.font = '600 26px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+                ctx.fillText(`подходы: ${sets.join('/')}`, contentX + contentW - 130, y);
+            }
+            ctx.fillStyle = timeColor;
+            ctx.font = '700 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+            ctx.fillText(timeStr, contentX + contentW, y);
+            ctx.textAlign = 'left';
+            y += 28;
+        });
+    }
+
+    // Хештег
     ctx.fillStyle = isLight ? '#8a8a95' : '#6c6c80';
-    ctx.font = '600 32px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('#FitTrainer', pad + 56, H - pad - 56);
+    ctx.font = '600 28px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.fillText('#FitTrainer', contentX, cardY + cardH - 40);
+
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.95));
     if (!blob) {
         if (navigator.share) navigator.share({ title: 'Тренировка', text: textFallback }).catch(() => showShareFallback(textFallback));
